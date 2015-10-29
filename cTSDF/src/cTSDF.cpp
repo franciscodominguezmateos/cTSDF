@@ -3,7 +3,7 @@
 // Author      : Francico Dominguez
 // Version     :
 // Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
+// Description : easy TSDF in C++, Ansi-style
 //============================================================================
 #include <stdio.h>
 #include <vector>
@@ -25,6 +25,8 @@ GLfloat roll = 0.0;
 GLfloat pitch = 0.0;
 
 DepthImage di1,di2;
+Tsdf<float> t;
+vector<Point3f> vpts;
 
 bool wires=true;
 bool friccion=true;
@@ -44,46 +46,13 @@ void displayMe(void)
     glPushMatrix();
       glTranslatef(-di1.getCentroid().x, di1.getCentroid().y, di1.getCentroid().z);
       di1.glRender();
-      di2.glRender();
+      //di2.glRender();
+      glColor3f(1,1,0);
+	  glBegin(GL_POINTS);
+      for(Point3f p:vpts)
+    	  glVertex3f(p.x,-p.y,-p.z);
+      glEnd();
     glPopMatrix();
-
-//    glPushMatrix();
-//     glColor3f(1.0f, 1.0f, 0.0f);
-//     glRotatef(angle*2,0.0,1.0,0.0);
-//     glTranslatef(0.8,0.5,0.0);
-//     glutSolidCube(0.35);
-//      glPushMatrix();
-//       glColor3f(1.0f, 0.0f, 0.0f);
-//       glRotatef(angle*2,0.0,1.0,0.0);
-//       glTranslatef(0.5,0.0,0.0);
-//       glutSolidSphere(0.1,20,20);
-//      glPopMatrix();
-//    glPopMatrix();
-//    glPushMatrix();
-//     glColor3f(0.0f, 1.0f, 1.0f);
-//     glTranslatef(-0.8,0.05,-0.8);
-//     glutSolidSphere(0.1,10,20);
-//    glPopMatrix();
-    //glColor3f(0.0f, 1.0f, 0.0f);
-    //glutSolidTeapot(0.5);
-//    glBegin(GL_POLYGON);
-//        glColor3f(1.0f, 0.0f, 0.0f);
-//        glVertex3f(0.0, 0.0, 0.0);
-//        glColor3f(1.0f, 1.0f, 0.0f);
-//        glVertex3f(0.5, 0.0, 0.0);
-//        glColor3f(1.0f, 0.0f, 1.0f);
-//        glVertex3f(0.5, 0.5, 0.0);
-//        glColor3f(0.0f, 0.0f, 1.0f);
-//        glVertex3f(0.0, 0.5, 0.0);
-//    glEnd();
-//    glColor3f(0.0f, 1.0f, 1.0f);
-//    glBegin(GL_POLYGON);
-//        glVertex3f(-1.0, 0.0, -1.0);
-//        glVertex3f( 1.0, 0.0, -1.0);
-//        glVertex3f( 1.0, 0.0,  1.0);
-//        glVertex3f(-1.0, 0.0,  1.0);
-//    glEnd();
-    //glFlush();
     glutSwapBuffers();
     angle++;
 }
@@ -199,11 +168,28 @@ int main(int argc, char** argv)
 	DepthImage dImg1(basepath,posI);
 	DepthImage dImg2(basepath,posI+1);
     di1=dImg1.sparse();
-    di2=dImg1.sparse();
+    di2=dImg2.sparse();
     //di=dImg1;
     cout << di1.getCentroid()<< " centroid"<<endl;
     cout << di1.getPoints3D().size()/1000 << "mil filtered points" <<endl;
-
+    t.clear(0.0);
+    t.setMinMax(-1.5,1.5);
+    vector<Point3f> pts=di1.getPoints3D();
+    cout << "pts.size()" << pts.size() <<endl;
+    for(Point3f p:pts){
+    	t.setVoxel(p.x,p.y,p.z,1.0);
+    }
+    for(int i=0;i<t.getSize();i++)
+    	for(int j=0;j<t.getSize();j++)
+    		for(int k=0;k<t.getSize();k++)
+    			if(t.getVoxel(i,j,k)==1.0){
+    				float x=t.i2f(i);
+    				float y=t.i2f(j);
+    				float z=t.i2f(k);
+    				Point3f p(x,y,z);
+    				vpts.push_back(p);
+    			}
+    cout << vpts.size() <<endl;
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     //glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
