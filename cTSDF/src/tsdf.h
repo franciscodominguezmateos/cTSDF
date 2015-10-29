@@ -2,7 +2,7 @@
  * tsdf.h
  *
  *  Created on: Oct 28, 2015
- *      Author: francisco
+ *      Author: Francisco Dominguez
  */
 
 #ifndef TSDF_H_

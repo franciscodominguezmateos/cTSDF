@@ -167,13 +167,13 @@ int main(int argc, char** argv)
 	int posI=10;
 	DepthImage dImg1(basepath,posI);
 	DepthImage dImg2(basepath,posI+1);
-    di1=dImg1.sparse();
+    di1=dImg1;//.sparse();
     di2=dImg2.sparse();
     //di=dImg1;
     cout << di1.getCentroid()<< " centroid"<<endl;
     cout << di1.getPoints3D().size()/1000 << "mil filtered points" <<endl;
     t.clear(0.0);
-    t.setMinMax(-1.5,1.5);
+    t.setMinMax(-2.0,2.0);
     vector<Point3f> pts=di1.getPoints3D();
     cout << "pts.size()" << pts.size() <<endl;
     for(Point3f p:pts){
@@ -195,7 +195,7 @@ int main(int argc, char** argv)
     //glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(700, 700);
     glutInitWindowPosition(250, 250);
-    glutCreateWindow("Teacup");
+    glutCreateWindow("cTSDF");
     init();
     glutDisplayFunc(displayMe);
     glutIdleFunc(idle);
