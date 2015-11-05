@@ -18,7 +18,7 @@ class Tsdf {
 	T *tsdf;
 	float min,max;
 public:
-	Tsdf():size(256),tsdf(new T[size*size*size]),min(0),max(1){};
+	Tsdf(int size=128):size(size),tsdf(new T[size*size*size]),min(0),max(1){};
 	inline int getIdx(float f){
 		int i;
 		float d=max-min;
