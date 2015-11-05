@@ -24,7 +24,8 @@ public:
 		float d=max-min;
 		float j;
 		j=(f-min)/d;
-		i=fmax(fmin(j,1.0),0.0)*(size-1);
+		//i=fmax(fmin(j,1.0),0.0)*(size-1);
+		i=j*(size-1);
 		return i;
 	}
 	inline float i2f(int i){

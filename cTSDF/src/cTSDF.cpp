@@ -12,6 +12,9 @@
 #include <GL/glut.h>
 #include <depthImage.h>
 #include "tsdf.h"
+extern "C" {
+ #include "poligonise.h"
+}
 
 using namespace std;
 
@@ -27,6 +30,7 @@ GLfloat pitch = 0.0;
 DepthImage di1,di2;
 Tsdf<float> t;
 vector<Point3f> vpts;
+vector<TRIANGLE> tiangles;
 
 bool wires=true;
 bool friccion=true;
@@ -79,24 +83,6 @@ void reshape(int width, int height)
 void idle()
 {
     displayMe();
-    /*
-    h.limpiaFuerza();
-    h.acumulaFuerza(gravedad);
-    for(Particula *p:h.getPuntos()){
-    	Vector3D fr=rv.getFuerza(p);
-    	p->acumulaFuerza(fr);
-    }
-    h.aplicaFuerza();
-    t.limpiaFuerza();
-    if(friccion)
-    	for(Particula *p:t.getPuntos()){
-    		Vector3D fr=rv.getFuerza(p);
-    	    p->acumulaFuerza(fr);
-    	}
-    //t.acumulaFuerza(gravedad);
-    //t.aplicaFuerza();
-     *
-     */
     usleep(100000);
 }
 void keyPressed (unsigned char key, int x, int y) {
@@ -164,16 +150,16 @@ int main(int argc, char** argv)
 	        return -1;
 	}
 	basepath=argv[1];
-	int posI=10;
+	int posI=60;
 	DepthImage dImg1(basepath,posI);
 	DepthImage dImg2(basepath,posI+1);
-    di1=dImg1.sparse();
+    di1=dImg1;//.sparse();
     di2=dImg2.sparse();
     //di=dImg1;
     cout << di1.getCentroid()<< " centroid"<<endl;
     cout << di1.getPoints3D().size()/1000 << "mil filtered points" <<endl;
     t.clear(0.0);
-    t.setMinMax(-1.5,1.5);
+    t.setMinMax(-2,2);
     vector<Point3f> pts=di1.getPoints3D();
     cout << "pts.size()" << pts.size() <<endl;
     for(Point3f p:pts){
@@ -190,6 +176,53 @@ int main(int argc, char** argv)
     				vpts.push_back(p);
     			}
     cout << vpts.size() <<endl;
+	TRIANGLE triangles[10];
+	TRIANGLE *tri = NULL;
+	int ntri = 0;
+    GRIDCELL grid;
+    for(int i=0;i<t.getSize()-1;i++)
+    	for(int j=0 ;j<t.getSize()-1;j++)
+    		for(int k=0;k<t.getSize()-1;k++){
+    			grid.p[0].x = t.i2f(i);
+    			grid.p[0].y = t.i2f(j);
+    			grid.p[0].z = t.i2f(k);
+    			grid.val[0] = t.getVoxel(i,j,k);
+                grid.p[1].x = t.i2f(i+1);
+                grid.p[1].y = t.i2f(j);
+                grid.p[1].z = t.i2f(k);
+    			grid.val[1] =  t.getVoxel(i+1,j,k);
+                grid.p[2].x = t.i2f(i+1);
+                grid.p[2].y = t.i2f(j+1);
+                grid.p[2].z = t.i2f(k);
+    			grid.val[2] =  t.getVoxel(i+1,j+1,k);
+                grid.p[3].x = t.i2f(i);
+                grid.p[3].y = t.i2f(j+1);
+                grid.p[3].z = t.i2f(k);
+    			grid.val[3] =  t.getVoxel(i,j+1,k);
+                grid.p[4].x = t.i2f(i);
+                grid.p[4].y = t.i2f(j);
+                grid.p[4].z = t.i2f(k+1);
+    			grid.val[4] =  t.getVoxel(i,j,k+1);
+                grid.p[5].x = t.i2f(i+1);
+                grid.p[5].y = t.i2f(j);
+                grid.p[5].z = t.i2f(k+1);
+    			grid.val[5] =  t.getVoxel(i+1,j,k+1);
+                grid.p[6].x = t.i2f(i+1);
+                grid.p[6].y = t.i2f(j+1);
+                grid.p[6].z = t.i2f(k+1);
+    			grid.val[6] =  t.getVoxel(i+1,j+1,k+1);
+                grid.p[7].x = t.i2f(i);
+                grid.p[7].y = t.i2f(j+1);
+                grid.p[7].z = t.i2f(k+1);
+    			grid.val[7] =  t.getVoxel(i,j+1,k+1);
+    			int	n = PolygoniseCube(grid,0.5,triangles);
+    			tri = (TRIANGLE *)realloc(tri,(ntri+n)*sizeof(TRIANGLE));
+    			for (int l=0;l<n;l++)
+    				tri[ntri+l] = triangles[l];
+    			ntri += n;
+    			//triangles.push_back(p);
+    			}
+
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     //glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
