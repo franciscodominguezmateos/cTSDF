@@ -27,7 +27,7 @@ GLfloat roll = 0.0;
 GLfloat pitch = 0.0;
 
 DepthImage di1,di2;
-Tsdf<float> t(64);
+Tsdf<float> t(128);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
 
@@ -66,7 +66,7 @@ void displayMe(void)
     	  glVertex3f(t.p[2].x,-t.p[2].y,-t.p[2].z);
       }
       glEnd();
-      glColor3f(1,1,0);
+//      glColor3f(1,1,0);
 //	  glBegin(GL_POINTS);
 //      for(Point3f p:vpts)
 //    	  glVertex3f(p.x,-p.y,-p.z);
