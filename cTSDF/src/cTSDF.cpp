@@ -41,7 +41,7 @@ void displayMe(void)
 {
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-    gluLookAt (0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    gluLookAt (0.0, 0.0, 20.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     GLfloat lightpos[] = {0.0, 15., 5., 0.0};
     glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
 //    glTranslatef(0.0f, 0.0f, -3.0f);
@@ -234,6 +234,7 @@ void buildMesh(Tsdf<float> &t,vector<TRIANGLE> &mesh){
 #define sqr(x) ((x)*(x))
 int main(int argc, char** argv)
 {
+
 	string basepath;
 	if ( argc != 2 )
 		{
@@ -249,13 +250,15 @@ int main(int argc, char** argv)
     //di=dImg1;
     cout << di1.getCentroid()<< " centroid"<<endl;
     cout << di1.getPoints3D().size()/1000 << "mil filtered points" <<endl;
-    t.clear(0.0);
-    t.setMinMax(-0.35,0.35);
     vector<Point3f> pts=di1.getPoints3D();
     cout << "pts.size()" << pts.size() <<endl;
-//    for(Point3f p:pts){
-//    	t.setVoxel(p.x,p.y,p.z,1.0);
-//    }
+
+    t.clear(0.0);
+    //t.setMinMax(-0.35,0.35);
+    t.setMinMax(-4.0,4.0);
+    //for(Point3f p:pts){
+    //	t.setVoxel(p.x,p.y,p.z,0.0);
+    //}
     //build sphere
     for(int i=0;i<t.getSize();i++)
     	for(int j=0;j<t.getSize();j++)
@@ -267,10 +270,13 @@ int main(int argc, char** argv)
     			float d0=sqrt(sqr(x)+sqr(y)+sqr(z))-0.25;
     			float d1=sqrt(sqr(x-p)+sqr(y-p)+sqr(z-p))-0.125;
     			float d2=sqrt(sqr(x+p)+sqr(y-p)+sqr(z-p))-0.125;
-    			float d=fmin(fmin(d0,d1),d2);
+    			float db=fmin(fmin(d0,d1),d2);
+    			float pd=di1.projectiveDistance(Point3f(x,y,z));
+    			float d=fmin(db,pd);
     			//float d=d0+d1;
     			t.setVoxel(i,j,k,d);
     		}
+
     //get points in voxel
     for(int i=0;i<t.getSize();i++)
     	for(int j=0;j<t.getSize();j++)
