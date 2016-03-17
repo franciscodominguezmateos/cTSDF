@@ -27,7 +27,7 @@ GLfloat roll = 0.0;
 GLfloat pitch = 0.0;
 
 DepthImage di1,di2;
-Tsdf<float> t(128);
+Tsdf<float> t(256);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
 
@@ -41,7 +41,7 @@ void displayMe(void)
 {
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-    gluLookAt (0.0, 0.0, 20.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    gluLookAt (0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     GLfloat lightpos[] = {0.0, 15., 5., 0.0};
     glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
 //    glTranslatef(0.0f, 0.0f, -3.0f);
@@ -51,7 +51,7 @@ void displayMe(void)
     glPushMatrix();
       //glTranslatef(-di1.getCentroid().x, di1.getCentroid().y, di1.getCentroid().z+1);
 
-     //di1.glRender();
+     if(wires) di1.glRender();
       //di2.glRender();
       glBegin(GL_TRIANGLES);
       for(TRIANGLE t:mesh){
@@ -253,9 +253,9 @@ int main(int argc, char** argv)
     vector<Point3f> pts=di1.getPoints3D();
     cout << "pts.size()" << pts.size() <<endl;
 
-    t.clear(0.0);
+    t.clear(1e32);
     //t.setMinMax(-0.35,0.35);
-    t.setMinMax(-4.0,4.0);
+    t.setMinMax(-2.0,2.0);
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
@@ -272,9 +272,9 @@ int main(int argc, char** argv)
     			float d2=sqrt(sqr(x+p)+sqr(y-p)+sqr(z-p))-0.125;
     			float db=fmin(fmin(d0,d1),d2);
     			float pd=di1.projectiveDistance(Point3f(x,y,z));
-    			float d=fmin(db,pd);
+    			//float d=fmin(db,pd);
     			//float d=d0+d1;
-    			t.setVoxel(i,j,k,d);
+    			t.setVoxel(i,j,k,pd);
     		}
 
     //get points in voxel
