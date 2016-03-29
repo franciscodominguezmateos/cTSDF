@@ -27,7 +27,7 @@ GLfloat roll = 0.0;
 GLfloat pitch = 0.0;
 
 DepthImage di1,di2;
-Tsdf<float> t(256);
+Tsdf<float> t(512);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
 
