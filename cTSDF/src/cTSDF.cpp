@@ -49,7 +49,7 @@ void displayMe(void)
     glRotatef(pitch,1.0,0.0,0.0);
     glRotatef(roll ,0.0,0.0,1.0);
     glPushMatrix();
-      //glTranslatef(-di1.getCentroid().x, di1.getCentroid().y, di1.getCentroid().z+1);
+     //glTranslatef(-di1.getCentroid().x, di1.getCentroid().y, di1.getCentroid().z+1);
 
      if(wires) di1.glRender();
       //di2.glRender();
@@ -187,10 +187,13 @@ void computeNormals(TRIANGLE *t){
 void buildMesh(Tsdf<float> &t,vector<TRIANGLE> &mesh){
 	TRIANGLE triangles[10];
     GRIDCELL grid;
-    for(int i=0;i<t.getSize()-1;i++){
-    	cout << i << endl;
-    	for(int j=0 ;j<t.getSize()-1;j++)
-    		for(int k=0;k<t.getSize()-1;k++){
+//    for(int i=0;i<t.getSize()-1;i++){
+//    	cout << i << endl;
+//    	for(int j=0 ;j<t.getSize()-1;j++)
+//    		for(int k=0;k<t.getSize()-1;k++)	{
+    int i,j,k;
+    for(int idx:t.getVoxelsIdx()){
+       	t.getIJKfromIdx(idx,i,j,k);
     			grid.p[0].x = t.i2f(i);
     			grid.p[0].y = t.i2f(j);
     			grid.p[0].z = t.i2f(k);
@@ -228,7 +231,7 @@ void buildMesh(Tsdf<float> &t,vector<TRIANGLE> &mesh){
     				computeNormals(&triangles[l]);
     				mesh.push_back(triangles[l]);
     			}
-    		}
+    	//	}
     }
 }
 #define sqr(x) ((x)*(x))
@@ -274,22 +277,34 @@ int main(int argc, char** argv)
     			float pd=di1.projectiveDistance(Point3f(x,y,z));
     			float d=fmin(db,pd);
     			//float d=d0+d1;
-    			t.setVoxel(i,j,k,d);
+    			if(abs(d)<0.05)
+    				t.setVoxel(i,j,k,d);
     		}
 
     //get points in voxel
-    for(int i=0;i<t.getSize();i++)
-    	for(int j=0;j<t.getSize();j++)
-    		for(int k=0;k<t.getSize();k++){
-    			//if(t.getVoxel(i,j,k)<=0.1){
-    				float x=t.i2f(i);
-    				float y=t.i2f(j);
-    				float z=t.i2f(k);
-    				Point3f p(x,y,z);
-    				vpts.push_back(p);
-    			//}
-    		}
-    cout << vpts.size() <<endl;
+//    for(int i=0;i<t.getSize();i++)
+//    	for(int j=0;j<t.getSize();j++)
+//    		for(int k=0;k<t.getSize();k++){
+//    			//if(t.getVoxel(i,j,k)<=0.1){
+//    				float x=t.i2f(i);
+//    				float y=t.i2f(j);
+//    				float z=t.i2f(k);
+//    				Point3f p(x,y,z);
+//    				vpts.push_back(p);
+//    			//}
+//    		}
+//    cout << vpts.size() <<endl;
+//    vpts.clear();
+//    int i,j,k;
+//    for(int idx:t.getVoxelsIdx()){
+//    	t.getIJKfromIdx(idx,i,j,k);
+//		float x=t.i2f(i);
+//		float y=t.i2f(j);
+//		float z=t.i2f(k);
+//		Point3f p(x,y,z);
+//		vpts.push_back(p);
+//    }
+    cout << t.getVoxelsIdx().size() <<endl;
     buildMesh(t,mesh);
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);

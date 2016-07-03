@@ -16,9 +16,10 @@ template <class T>
 class Tsdf {
 	int size;
 	T *tsdf;
+	vector<int>voxelsIdx;
 	float min,max;
 public:
-	Tsdf(int size=128):size(size),tsdf(new T[size*size*size]),min(0),max(1){};
+	Tsdf(int size=128):size(size),tsdf(new T[size*size*size]),voxelsIdx(vector<int>()),min(0),max(1){};
 	inline int getIdx(float f){
 		int i;
 		float d=max-min;
@@ -27,6 +28,16 @@ public:
 		//i=fmax(fmin(j,1.0),0.0)*(size-1);
 		i=j*(size-1);
 		return i;
+	}
+	inline int getIdx(int &i,int &j,int &k){
+		return i+j*size+k*size*size;
+	}
+	inline void getIJKfromIdx(int idx,int &i, int &j,int &k){
+		i=idx % size;
+		idx/=size;
+		j=idx %size;
+		idx/=size;
+		k=idx;
 	}
 	inline float i2f(int i){
 		float j=(float)i/(size-1);
@@ -50,11 +61,16 @@ public:
 		k=getIdx(z);
 		return getVoxel(i,j,k);
 	}
+	inline vector<int> &getVoxelsIdx(){
+		return voxelsIdx;
+	}
 	inline void setVoxel(int i,int j,int k,T v){
 		//if out of range don't set
 		if (i<0 || i>=size || j<0 || j>=size || k<0 || k>=size) return;
 		//cout << "i"<<i<<j<<k<<endl;
-		tsdf[i+j*size+k*size*size]=v;
+		int idx=i+j*size+k*size*size;
+		tsdf[idx]=v;
+		voxelsIdx.push_back(idx);
 	}
 	inline void setVoxel(float x,float y,float z,T v){
 		int i,j,k;
