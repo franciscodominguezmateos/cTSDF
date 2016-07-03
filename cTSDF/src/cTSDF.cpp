@@ -28,7 +28,7 @@ GLfloat roll = 0.0;
 GLfloat pitch = 0.0;
 
 DepthImage di1,di2;
-Grid<float> g(256,256,256);
+Grid<float> g(256/2,256/2,256/2);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
 
@@ -249,6 +249,7 @@ int main(int argc, char** argv)
 	DepthImage dImg1(basepath,posI);
 	DepthImage dImg2(basepath,posI+1);
     di1=dImg1;//.sparse();
+    di1.bilateralDepthFilter();
     di2=dImg2.sparse();
     //di=dImg1;
     cout << di1.getCentroid()<< " centroid"<<endl;
@@ -258,14 +259,15 @@ int main(int argc, char** argv)
 
     g.clear(1e32);
     //t.setMinMax(-0.35,0.35);
-    g.setMinMax(-2.0,1.0,
+    g.setMinMax(-1.0,1.0,
     		    -1.0,1.0,
-				-0.5,1.5);
+				 0.9,2.0);
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
     //build sphere and projectiveDistance
-    for(int i=0;i<g.getSizeX();i++)
+    for(int i=0;i<g.getSizeX();i++){
+    	cout << i << endl;
     	for(int j=0;j<g.getSizeY();j++)
     		for(int k=0;k<g.getSizeZ();k++){
     			float x=g.i2X(i);
@@ -282,30 +284,7 @@ int main(int argc, char** argv)
     			if(abs(d)<0.025)
     				g.setVoxel(i,j,k,d);
     		}
-
-    //get points in voxel
-//    for(int i=0;i<t.getSize();i++)
-//    	for(int j=0;j<t.getSize();j++)
-//    		for(int k=0;k<t.getSize();k++){
-//    			//if(t.getVoxel(i,j,k)<=0.1){
-//    				float x=t.i2f(i);
-//    				float y=t.i2f(j);
-//    				float z=t.i2f(k);
-//    				Point3f p(x,y,z);
-//    				vpts.push_back(p);
-//    			//}
-//    		}
-//    cout << vpts.size() <<endl;
-//    vpts.clear();
-//    int i,j,k;
-//    for(int idx:t.getVoxelsIdx()){
-//    	t.getIJKfromIdx(idx,i,j,k);
-//		float x=t.i2f(i);
-//		float y=t.i2f(j);
-//		float z=t.i2f(k);
-//		Point3f p(x,y,z);
-//		vpts.push_back(p);
-//    }
+    }
     cout << g.getVoxelsIdx().size() <<endl;
     buildMesh(g,mesh);
     glutInit(&argc, argv);
