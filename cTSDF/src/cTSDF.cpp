@@ -12,6 +12,7 @@
 #include <GL/glut.h>
 #include <depthImage.h>
 #include "tsdf.h"
+#include "grid.h"
 extern "C" {
  #include "poligonise.h"
 }
@@ -27,7 +28,7 @@ GLfloat roll = 0.0;
 GLfloat pitch = 0.0;
 
 DepthImage di1,di2;
-Tsdf<float> t(256);
+Grid<float> g(256,256,256);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
 
@@ -184,7 +185,7 @@ void computeNormals(TRIANGLE *t){
 	t->n[2].y=n.y;
 	t->n[2].z=n.z;
 }
-void buildMesh(Tsdf<float> &t,vector<TRIANGLE> &mesh){
+void buildMesh(Grid<float> &g,vector<TRIANGLE> &mesh){
 	TRIANGLE triangles[10];
     GRIDCELL grid;
 //    for(int i=0;i<t.getSize()-1;i++){
@@ -192,40 +193,40 @@ void buildMesh(Tsdf<float> &t,vector<TRIANGLE> &mesh){
 //    	for(int j=0 ;j<t.getSize()-1;j++)
 //    		for(int k=0;k<t.getSize()-1;k++)	{
     int i,j,k;
-    for(int idx:t.getVoxelsIdx()){
-       	t.getIJKfromIdx(idx,i,j,k);
-    			grid.p[0].x = t.i2f(i);
-    			grid.p[0].y = t.i2f(j);
-    			grid.p[0].z = t.i2f(k);
-    			grid.val[0] = t.getVoxel(i,j,k);
-                grid.p[1].x = t.i2f(i+1);
-                grid.p[1].y = t.i2f(j);
-                grid.p[1].z = t.i2f(k);
-    			grid.val[1] =  t.getVoxel(i+1,j,k);
-                grid.p[2].x = t.i2f(i+1);
-                grid.p[2].y = t.i2f(j+1);
-                grid.p[2].z = t.i2f(k);
-    			grid.val[2] =  t.getVoxel(i+1,j+1,k);
-                grid.p[3].x = t.i2f(i);
-                grid.p[3].y = t.i2f(j+1);
-                grid.p[3].z = t.i2f(k);
-    			grid.val[3] =  t.getVoxel(i,j+1,k);
-                grid.p[4].x = t.i2f(i);
-                grid.p[4].y = t.i2f(j);
-                grid.p[4].z = t.i2f(k+1);
-    			grid.val[4] =  t.getVoxel(i,j,k+1);
-                grid.p[5].x = t.i2f(i+1);
-                grid.p[5].y = t.i2f(j);
-                grid.p[5].z = t.i2f(k+1);
-    			grid.val[5] =  t.getVoxel(i+1,j,k+1);
-                grid.p[6].x = t.i2f(i+1);
-                grid.p[6].y = t.i2f(j+1);
-                grid.p[6].z = t.i2f(k+1);
-    			grid.val[6] =  t.getVoxel(i+1,j+1,k+1);
-                grid.p[7].x = t.i2f(i);
-                grid.p[7].y = t.i2f(j+1);
-                grid.p[7].z = t.i2f(k+1);
-    			grid.val[7] =  t.getVoxel(i,j+1,k+1);
+    for(int idx:g.getVoxelsIdx()){
+       	g.getIJKfromIdx(idx,i,j,k);
+    			grid.p[0].x = g.i2X(i);
+    			grid.p[0].y = g.j2Y(j);
+    			grid.p[0].z = g.k2Z(k);
+    			grid.val[0] = g.getVoxel(i,j,k);
+                grid.p[1].x = g.i2X(i+1);
+                grid.p[1].y = g.j2Y(j);
+                grid.p[1].z = g.k2Z(k);
+    			grid.val[1] =  g.getVoxel(i+1,j,k);
+                grid.p[2].x = g.i2X(i+1);
+                grid.p[2].y = g.j2Y(j+1);
+                grid.p[2].z = g.k2Z(k);
+    			grid.val[2] =  g.getVoxel(i+1,j+1,k);
+                grid.p[3].x = g.i2X(i);
+                grid.p[3].y = g.j2Y(j+1);
+                grid.p[3].z = g.k2Z(k);
+    			grid.val[3] =  g.getVoxel(i,j+1,k);
+                grid.p[4].x = g.i2X(i);
+                grid.p[4].y = g.j2Y(j);
+                grid.p[4].z = g.k2Z(k+1);
+    			grid.val[4] =  g.getVoxel(i,j,k+1);
+                grid.p[5].x = g.i2X(i+1);
+                grid.p[5].y = g.j2Y(j);
+                grid.p[5].z = g.k2Z(k+1);
+    			grid.val[5] =  g.getVoxel(i+1,j,k+1);
+                grid.p[6].x = g.i2X(i+1);
+                grid.p[6].y = g.j2Y(j+1);
+                grid.p[6].z = g.k2Z(k+1);
+    			grid.val[6] =  g.getVoxel(i+1,j+1,k+1);
+                grid.p[7].x = g.i2X(i);
+                grid.p[7].y = g.j2Y(j+1);
+                grid.p[7].z = g.k2Z(k+1);
+    			grid.val[7] =  g.getVoxel(i,j+1,k+1);
     			int	n = PolygoniseCube(grid,0.0,triangles);
     			for (int l=0;l<n;l++){
     				computeNormals(&triangles[l]);
@@ -237,7 +238,6 @@ void buildMesh(Tsdf<float> &t,vector<TRIANGLE> &mesh){
 #define sqr(x) ((x)*(x))
 int main(int argc, char** argv)
 {
-
 	string basepath;
 	if ( argc != 2 )
 		{
@@ -253,22 +253,24 @@ int main(int argc, char** argv)
     //di=dImg1;
     cout << di1.getCentroid()<< " centroid"<<endl;
     cout << di1.getPoints3D().size()/1000 << "mil filtered points" <<endl;
-    vector<Point3f> pts=di1.getPoints3DCentered();
-    cout << "pts.size()" << pts.size() <<endl;
+    //vector<Point3f> pts=di1.getPoints3DCentered();
+    //cout << "pts.size()" << pts.size() <<endl;
 
-    t.clear(1e32);
+    g.clear(1e32);
     //t.setMinMax(-0.35,0.35);
-    t.setMinMax(-2.0,2.0);
+    g.setMinMax(-2.0,1.0,
+    		    -1.0,1.0,
+				-0.5,1.5);
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
     //build sphere and projectiveDistance
-    for(int i=0;i<t.getSize();i++)
-    	for(int j=0;j<t.getSize();j++)
-    		for(int k=0;k<t.getSize();k++){
-    			float x=t.i2f(i);
-    			float y=t.i2f(j);
-    			float z=t.i2f(k);
+    for(int i=0;i<g.getSizeX();i++)
+    	for(int j=0;j<g.getSizeY();j++)
+    		for(int k=0;k<g.getSizeZ();k++){
+    			float x=g.i2X(i);
+    			float y=g.j2Y(j);
+    			float z=g.k2Z(k);
     			float p=0.20;
     			float d0=sqrt(sqr(x)+sqr(y)+sqr(z))-0.25;
     			float d1=sqrt(sqr(x-p)+sqr(y-p)+sqr(z-p))-0.125;
@@ -277,8 +279,8 @@ int main(int argc, char** argv)
     			float pd=di1.projectiveDistance(Point3f(x,y,z));
     			float d=fmin(db,pd);
     			//float d=d0+d1;
-    			if(abs(d)<0.05)
-    				t.setVoxel(i,j,k,d);
+    			if(abs(d)<0.025)
+    				g.setVoxel(i,j,k,d);
     		}
 
     //get points in voxel
@@ -304,8 +306,8 @@ int main(int argc, char** argv)
 //		Point3f p(x,y,z);
 //		vpts.push_back(p);
 //    }
-    cout << t.getVoxelsIdx().size() <<endl;
-    buildMesh(t,mesh);
+    cout << g.getVoxelsIdx().size() <<endl;
+    buildMesh(g,mesh);
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     //glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
