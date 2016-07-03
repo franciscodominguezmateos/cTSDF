@@ -27,7 +27,7 @@ GLfloat roll = 0.0;
 GLfloat pitch = 0.0;
 
 DepthImage di1,di2;
-Tsdf<float> t(512);
+Tsdf<float> t(256);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
 
@@ -250,7 +250,7 @@ int main(int argc, char** argv)
     //di=dImg1;
     cout << di1.getCentroid()<< " centroid"<<endl;
     cout << di1.getPoints3D().size()/1000 << "mil filtered points" <<endl;
-    vector<Point3f> pts=di1.getPoints3D();
+    vector<Point3f> pts=di1.getPoints3DCentered();
     cout << "pts.size()" << pts.size() <<endl;
 
     t.clear(1e32);
@@ -259,7 +259,7 @@ int main(int argc, char** argv)
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
-    //build sphere
+    //build sphere and projectiveDistance
     for(int i=0;i<t.getSize();i++)
     	for(int j=0;j<t.getSize();j++)
     		for(int k=0;k<t.getSize();k++){
@@ -272,9 +272,9 @@ int main(int argc, char** argv)
     			float d2=sqrt(sqr(x+p)+sqr(y-p)+sqr(z-p))-0.125;
     			float db=fmin(fmin(d0,d1),d2);
     			float pd=di1.projectiveDistance(Point3f(x,y,z));
-    			//float d=fmin(db,pd);
+    			float d=fmin(db,pd);
     			//float d=d0+d1;
-    			t.setVoxel(i,j,k,pd);
+    			t.setVoxel(i,j,k,d);
     		}
 
     //get points in voxel
