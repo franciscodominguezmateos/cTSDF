@@ -25,7 +25,14 @@ public:
 		voxelsIdx(vector<int>()),
 		minX(0),maxX(1),
 		minY(0),maxY(1),
-		minZ(0),maxZ(1){};
+		minZ(0),maxZ(1){}
+	inline int getChildrenPos(int i,int j,int k,int level){
+		int ibit=i>>level & 1;
+		int jbit=j>>level & 1;
+		int kbit=k>>level & 1;
+		int ret= kbit<<2 | jbit <<1 | ibit;
+		return ret;
+	}
 	inline int getXIdx(float f){
 		int i;
 		float d=maxX-minX;

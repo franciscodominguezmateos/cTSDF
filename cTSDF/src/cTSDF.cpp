@@ -13,6 +13,7 @@
 #include <depthImage.h>
 #include "tsdf.h"
 #include "grid.h"
+#include "grid_octree.h"
 extern "C" {
  #include "poligonise.h"
 }
@@ -286,6 +287,8 @@ int main(int argc, char** argv)
     		}
     }
     cout << g.getVoxelsIdx().size() <<endl;
+    cout << g.getChildrenPos(0b100,0b010,0b100,2) << endl;
+    cout << g.getChildrenPos(0b100,0b010,0b100,1) << endl;
     buildMesh(g,mesh);
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);

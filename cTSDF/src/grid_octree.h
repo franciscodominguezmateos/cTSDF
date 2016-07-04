@@ -10,6 +10,8 @@
 
 
 #include <vector>
+#include "grid_octree_node.h"
+
 using  namespace std;
 
 template <class T>
@@ -27,7 +29,40 @@ public:
 		voxelsIdx(vector<int>()),
 		minX(0),maxX(1),
 		minY(0),maxY(1),
-		minZ(0),maxZ(1){};
+		minZ(0),maxZ(1){}
+	inline int getChildrenPos(int i,int j,int k,int level){
+		int ibit=i>>level & 1;
+		int jbit=j>>level & 1;
+		int kbit=k>>level & 1;
+		int ret= kbit>>2 | jbit >>1 | ibit;
+		return ret;
+	}
+	inline GridOctreeNode<T> *createNodes(GridOctreeNode<T> *nodeRoot,int i,int j,int k,int level){
+		int nPos;
+		GridOctreeNode<T> *node;
+		for(int l=level;l>=0;l--){
+			nPos=getChildrenPos(i,j,k,level);
+			node=new GridOctreeNode<T>();
+			nodeRoot->getChildren()[nPos]=node;
+			nodeRoot=node;
+		}
+		return nodeRoot;
+	}
+	inline void insertNode(GridOctreeNode<T> *nodeRoot,int i,int j,int k,int level,T *value){
+		int nPos;
+		GridOctreeNode<T> *node;
+		for(int l=level;l>=0;l--){
+			nPos=getChildrenPos(i,j,k,level);
+			if(nodeRoot->getChildren()[nPos]!=NULL){
+				nodeRoot=nodeRoot->getChildren()[nPos];
+			}
+			else{
+				nodeRoot=createNodes(nodeRoot,i,j,k,l);
+				break;
+			}
+		}
+		nodeRoot->value=value;
+	}
 	inline int getXIdx(float f){
 		int i;
 		float d=maxX-minX;
