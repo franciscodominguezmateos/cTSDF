@@ -17,42 +17,44 @@ using  namespace std;
 template <class T>
 class GridOctree {
 	int sizeX,sizeY,sizeZ;
-	T *grid;
 	vector<int>voxelsIdx;
 	float minX,maxX;
 	float minY,maxY;
 	float minZ,maxZ;
+	GridOctreeNode<T> *nodeRoot;
+	int level;
 public:
 	GridOctree(int sizeX=128,int sizeY=128,int sizeZ=128):
 		sizeX(sizeZ),sizeY(sizeY),sizeZ(sizeZ),
-		grid(new T[sizeX*sizeY*sizeZ]),
 		voxelsIdx(vector<int>()),
 		minX(0),maxX(1),
 		minY(0),maxY(1),
-		minZ(0),maxZ(1){}
+		minZ(0),maxZ(1),
+		nodeRoot(new GridOctreeNode<T>()),level(10){
+	}
 	inline int getChildrenPos(int i,int j,int k,int level){
 		int ibit=i>>level & 1;
 		int jbit=j>>level & 1;
 		int kbit=k>>level & 1;
-		int ret= kbit>>2 | jbit >>1 | ibit;
+		int ret= kbit<<2 | jbit<<1 | ibit;
 		return ret;
 	}
 	inline GridOctreeNode<T> *createNodes(GridOctreeNode<T> *nodeRoot,int i,int j,int k,int level){
 		int nPos;
 		GridOctreeNode<T> *node;
 		for(int l=level;l>=0;l--){
-			nPos=getChildrenPos(i,j,k,level);
+			nPos=getChildrenPos(i,j,k,l);
 			node=new GridOctreeNode<T>();
 			nodeRoot->getChildren()[nPos]=node;
 			nodeRoot=node;
 		}
 		return nodeRoot;
 	}
-	inline void insertNode(GridOctreeNode<T> *nodeRoot,int i,int j,int k,int level,T *value){
+	inline void insertNode(int i,int j,int k,T *value){
 		int nPos;
-		GridOctreeNode<T> *node;
+		GridOctreeNode<T> *nodeRoot=this->nodeRoot;
 		for(int l=level;l>=0;l--){
-			nPos=getChildrenPos(i,j,k,level);
+			nPos=getChildrenPos(i,j,k,l);
 			if(nodeRoot->getChildren()[nPos]!=NULL){
 				nodeRoot=nodeRoot->getChildren()[nPos];
 			}
@@ -62,6 +64,34 @@ public:
 			}
 		}
 		nodeRoot->value=value;
+	}
+	inline T getVoxel(int i,int j,int k){
+		int nPos;
+		T empty;
+		GridOctreeNode<T> *nodeRoot=this->nodeRoot;
+		for(int l=level;l>=0;l--){
+			nPos=getChildrenPos(i,j,k,l);
+			if(nodeRoot->getChildren()[nPos]!=NULL){
+				nodeRoot=nodeRoot->getChildren()[nPos];
+			}
+			else{
+				return empty;
+			}
+		}
+		return *(nodeRoot->value);
+	}
+	inline void setVoxel(int i,int j,int k,T v){
+		T *p=new T(v);//T need a copy constructor
+		insertNode(i,j,k,p);
+		int idx=getIdx(i,j,k);
+		voxelsIdx.push_back(idx);
+	}
+	inline void setVoxel(float x,float y,float z,T v){
+		int i,j,k;
+		i=getXIdx(x);
+		j=getYIdx(y);
+		k=getZIdx(z);
+		setVoxel(i,j,k,v);
 	}
 	inline int getXIdx(float f){
 		int i;
@@ -138,7 +168,6 @@ public:
 	inline int getSizeX(){return sizeX;}
 	inline int getSizeY(){return sizeY;}
 	inline int getSizeZ(){return sizeX;}
-	inline T getVoxel(int i,int j,int k){return grid[getIdx(i,j,k)];}
 	inline T getVoxel(float x,float y,float z){
 		int i,j,k;
 		i=getXIdx(x);
@@ -149,27 +178,9 @@ public:
 	inline vector<int> &getVoxelsIdx(){
 		return voxelsIdx;
 	}
-	inline void setVoxel(int i,int j,int k,T v){
-		//if out of range don't set
-		if (i<0 || i>=sizeX || j<0 || j>=sizeY || k<0 || k>=sizeZ) return;
-		//cout << "i"<<i<<j<<k<<endl;
-		int idx=getIdx(i,j,k);
-		grid[idx]=v;
-		voxelsIdx.push_back(idx);
-	}
-	inline void setVoxel(float x,float y,float z,T v){
-		int i,j,k;
-		i=getXIdx(x);
-		j=getYIdx(y);
-		k=getZIdx(z);
-		//cout << "x"<<x<<y<<z<<endl;
-		setVoxel(i,j,k,v);
-	}
 	inline void clear(T zeros){
-	    for(int i=0;i<sizeX*sizeY*sizeZ;i++)
-	    	grid[i]=zeros;
 	}
-	~GridOctree(){delete grid;}
+	~GridOctree(){}
 };
 
 

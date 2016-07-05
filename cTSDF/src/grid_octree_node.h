@@ -11,12 +11,14 @@
 
 template <class T>
 class GridOctreeNode {
-	T *value;
-	GridOctreeNode *children[8];
 public:
+	//this two attibutes could be a unions since *value is only used in leave and children in *branches
+	T *value;
+	GridOctreeNode *children[8];// this could be **children to save memory
+//public:
 	GridOctreeNode(){
 		for(int i=0;i<8;i++)
-			children=NULL;
+			children[i]=NULL;
 	}
 	~GridOctreeNode(){
 	}

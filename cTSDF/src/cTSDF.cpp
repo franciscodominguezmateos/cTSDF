@@ -11,9 +11,10 @@
 #include <unistd.h>
 #include <GL/glut.h>
 #include <depthImage.h>
-#include "tsdf.h"
-#include "grid.h"
+//#include "tsdf.h"
+//#include "grid.h"
 #include "grid_octree.h"
+#include "tsdf_voxel.h"
 extern "C" {
  #include "poligonise.h"
 }
@@ -29,7 +30,7 @@ GLfloat roll = 0.0;
 GLfloat pitch = 0.0;
 
 DepthImage di1,di2;
-Grid<float> g(256/2,256/2,256/2);
+GridOctree<TsdfVoxel> g(256*1,256*1,256*1);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
 
@@ -186,7 +187,7 @@ void computeNormals(TRIANGLE *t){
 	t->n[2].y=n.y;
 	t->n[2].z=n.z;
 }
-void buildMesh(Grid<float> &g,vector<TRIANGLE> &mesh){
+void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
 	TRIANGLE triangles[10];
     GRIDCELL grid;
 //    for(int i=0;i<t.getSize()-1;i++){
@@ -194,40 +195,49 @@ void buildMesh(Grid<float> &g,vector<TRIANGLE> &mesh){
 //    	for(int j=0 ;j<t.getSize()-1;j++)
 //    		for(int k=0;k<t.getSize()-1;k++)	{
     int i,j,k;
+    TsdfVoxel vxl;
     for(int idx:g.getVoxelsIdx()){
        	g.getIJKfromIdx(idx,i,j,k);
     			grid.p[0].x = g.i2X(i);
     			grid.p[0].y = g.j2Y(j);
     			grid.p[0].z = g.k2Z(k);
-    			grid.val[0] = g.getVoxel(i,j,k);
+    			vxl=g.getVoxel(i,j,k);
+    			grid.val[0] = vxl.d;
                 grid.p[1].x = g.i2X(i+1);
                 grid.p[1].y = g.j2Y(j);
                 grid.p[1].z = g.k2Z(k);
-    			grid.val[1] =  g.getVoxel(i+1,j,k);
+    			vxl=g.getVoxel(i+1,j,k);
+    			grid.val[1] =  vxl.d;
                 grid.p[2].x = g.i2X(i+1);
                 grid.p[2].y = g.j2Y(j+1);
                 grid.p[2].z = g.k2Z(k);
-    			grid.val[2] =  g.getVoxel(i+1,j+1,k);
+    			vxl=g.getVoxel(i+1,j+1,k);
+    			grid.val[2] =  vxl.d;
                 grid.p[3].x = g.i2X(i);
                 grid.p[3].y = g.j2Y(j+1);
                 grid.p[3].z = g.k2Z(k);
-    			grid.val[3] =  g.getVoxel(i,j+1,k);
+    			vxl=g.getVoxel(i,j+1,k);
+    			grid.val[3] =  vxl.d;
                 grid.p[4].x = g.i2X(i);
                 grid.p[4].y = g.j2Y(j);
                 grid.p[4].z = g.k2Z(k+1);
-    			grid.val[4] =  g.getVoxel(i,j,k+1);
+    			vxl=g.getVoxel(i,j,k+1);
+    			grid.val[4] =  vxl.d;
                 grid.p[5].x = g.i2X(i+1);
                 grid.p[5].y = g.j2Y(j);
                 grid.p[5].z = g.k2Z(k+1);
-    			grid.val[5] =  g.getVoxel(i+1,j,k+1);
+    			vxl=g.getVoxel(i+1,j,k+1);
+    			grid.val[5] =  vxl.d;
                 grid.p[6].x = g.i2X(i+1);
                 grid.p[6].y = g.j2Y(j+1);
                 grid.p[6].z = g.k2Z(k+1);
-    			grid.val[6] =  g.getVoxel(i+1,j+1,k+1);
+    			vxl=g.getVoxel(i+1,j+1,k+1);
+    			grid.val[6] =  vxl.d;
                 grid.p[7].x = g.i2X(i);
                 grid.p[7].y = g.j2Y(j+1);
                 grid.p[7].z = g.k2Z(k+1);
-    			grid.val[7] =  g.getVoxel(i,j+1,k+1);
+    			vxl=g.getVoxel(i,j+1,k+1);
+    			grid.val[7] =  vxl.d;
     			int	n = PolygoniseCube(grid,0.0,triangles);
     			for (int l=0;l<n;l++){
     				computeNormals(&triangles[l]);
@@ -258,11 +268,10 @@ int main(int argc, char** argv)
     //vector<Point3f> pts=di1.getPoints3DCentered();
     //cout << "pts.size()" << pts.size() <<endl;
 
-    g.clear(1e32);
-    //t.setMinMax(-0.35,0.35);
-    g.setMinMax(-1.0,1.0,
-    		    -1.0,1.0,
-				 0.9,2.0);
+    //g.clear(1e32);
+    g.setMinMax(-3.0,3.0,
+    		    -3.0,3.0,
+				 0.25,3.0);
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
@@ -282,13 +291,26 @@ int main(int argc, char** argv)
     			float pd=di1.projectiveDistance(Point3f(x,y,z));
     			float d=fmin(db,pd);
     			//float d=d0+d1;
-    			if(abs(d)<0.025)
-    				g.setVoxel(i,j,k,d);
+    			if(abs(d)<0.035){
+    				TsdfVoxel vxl;
+    				vxl.d=d;
+    				g.setVoxel(i,j,k,vxl);
+    				//cout << d<<":"<< g.getVoxel(i,j,k)<<endl;
+    			}
+
     		}
     }
     cout << g.getVoxelsIdx().size() <<endl;
-    cout << g.getChildrenPos(0b100,0b010,0b100,2) << endl;
-    cout << g.getChildrenPos(0b100,0b010,0b100,1) << endl;
+//    cout << g.getChildrenPos(0b100,0b010,0b100,2) << endl;
+//    cout << g.getChildrenPos(0b100,0b010,0b101,1) << endl;
+//    GridOctree<float> goct;
+//    float v=5;
+//    goct.setVoxel(0b100,0b010,0b101,v);
+//    float v1=8;
+//    goct.setVoxel(0b100,0b010,0b100,v1);
+//    cout << goct.getVoxel(0b100,0b010,0b100) << endl;
+//    cout << goct.getVoxel(0b100,0b010,0b101) << endl;
+//    cout << goct.getVoxel(0b100,0b011,0b101) << endl;
     buildMesh(g,mesh);
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
