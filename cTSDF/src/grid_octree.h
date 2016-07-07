@@ -50,6 +50,20 @@ public:
 		}
 		return nodeRoot;
 	}
+	inline bool isEmpty(int i,int j,int k){
+		int nPos;
+		GridOctreeNode<T> *nodeRoot=this->nodeRoot;
+		for(int l=level;l>=0;l--){
+			nPos=getChildrenPos(i,j,k,l);
+			if(nodeRoot->getChildren()[nPos]!=NULL){
+				nodeRoot=nodeRoot->getChildren()[nPos];
+			}
+			else{
+				return false;
+			}
+		}
+		return true;
+	}
 	inline void insertNode(int i,int j,int k,T *value){
 		int nPos;
 		GridOctreeNode<T> *nodeRoot=this->nodeRoot;
@@ -79,6 +93,35 @@ public:
 			}
 		}
 		return *(nodeRoot->value);
+	}
+	inline T getVoxel(float x,float y,float z){
+		int i,j,k;
+		i=getXIdx(x);
+		j=getYIdx(y);
+		k=getZIdx(z);
+		return getVoxel(i,j,k);
+	}
+	//NULL if the voxel doesn't exist
+	inline T *getVoxelPtr(int i,int j,int k){
+		int nPos;
+		GridOctreeNode<T> *nodeRoot=this->nodeRoot;
+		for(int l=level;l>=0;l--){
+			nPos=getChildrenPos(i,j,k,l);
+			if(nodeRoot->getChildren()[nPos]!=NULL){
+				nodeRoot=nodeRoot->getChildren()[nPos];
+			}
+			else{
+				return NULL;
+			}
+		}
+		return nodeRoot->value;
+	}
+	inline T *getVoxelPtr(float x,float y,float z){
+		int i,j,k;
+		i=getXIdx(x);
+		j=getYIdx(y);
+		k=getZIdx(z);
+		return getVoxelPtr(i,j,k);
 	}
 	inline void setVoxel(int i,int j,int k,T v){
 		T *p=new T(v);//T need a copy constructor
@@ -120,6 +163,11 @@ public:
 		i=j*(sizeZ-1);
 		return i;
 	}
+	inline void XYZ2ijk(float x,float y,float z,int &i,int &j,int &k){
+		i=getXIdx(x);
+		j=getYIdx(y);
+		k=getZIdx(k);
+	}
 	inline int getIdx(int &i,int &j,int &k){
 		return i+j*sizeX+k*sizeX*sizeY;
 	}
@@ -145,6 +193,11 @@ public:
 		float d=maxZ-minZ;
 		return minZ+d*j;
 	}
+	inline void ijk2XYZ(int i,int j,int k,float &x,float &y,float &z){
+		x=i2X(i);
+		y=j2Y(j);
+		z=k2Z(k);
+	}
 	inline float voxelSizeX(){
 		float d=maxX-minX;
 		return d/sizeX;
@@ -168,13 +221,6 @@ public:
 	inline int getSizeX(){return sizeX;}
 	inline int getSizeY(){return sizeY;}
 	inline int getSizeZ(){return sizeX;}
-	inline T getVoxel(float x,float y,float z){
-		int i,j,k;
-		i=getXIdx(x);
-		j=getYIdx(y);
-		k=getYIdx(z);
-		return getVoxel(i,j,k);
-	}
 	inline vector<int> &getVoxelsIdx(){
 		return voxelsIdx;
 	}

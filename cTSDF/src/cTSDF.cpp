@@ -33,6 +33,7 @@ DepthImage di1,di2;
 GridOctree<TsdfVoxel> g(256*1,256*1,256*1);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
+vector<Point3f> colors;
 
 bool wires=true;
 bool friccion=true;
@@ -57,15 +58,17 @@ void displayMe(void)
      if(wires) di1.glRender();
       //di2.glRender();
       glBegin(GL_TRIANGLES);
-      for(TRIANGLE t:mesh){
-          glColor4f(1,0,0.0,0.1);
-          glNormal3f(t.n[0].x,-t.n[0].y,-t.n[0].z);
+      for(int i=0;i<mesh.size();i++){
+    	  TRIANGLE t=mesh[i];
+    	  Point3f color=colors[i];
+          glColor4f(color.x,color.y,color.z,0.0);
+          //glNormal3f(t.n[0].x,-t.n[0].y,-t.n[0].z);
     	  glVertex3f(t.p[0].x,-t.p[0].y,-t.p[0].z);
           //glColor4f(0,1,0,0.1);
-          glNormal3f(t.n[1].x,-t.n[1].y,-t.n[1].z);
+          //glNormal3f(t.n[1].x,-t.n[1].y,-t.n[1].z);
     	  glVertex3f(t.p[1].x,-t.p[1].y,-t.p[1].z);
           //glColor4f(0,0,1,0.1);
-          glNormal3f(t.n[2].x,-t.n[2].y,-t.n[2].z);
+          //glNormal3f(t.n[2].x,-t.n[2].y,-t.n[2].z);
     	  glVertex3f(t.p[2].x,-t.p[2].y,-t.p[2].z);
       }
       glEnd();
@@ -240,8 +243,13 @@ void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
     			grid.val[7] =  vxl.d;
     			int	n = PolygoniseCube(grid,0.0,triangles);
     			for (int l=0;l<n;l++){
-    				computeNormals(&triangles[l]);
+    				//computeNormals(&triangles[l]);
     				mesh.push_back(triangles[l]);
+    				Point3f color;
+    				color.x=vxl.r/255.0;
+    				color.y=vxl.g/255.0;
+    				color.z=vxl.b/255.0;
+    				colors.push_back(color);
     			}
     	//	}
     }
@@ -269,37 +277,109 @@ int main(int argc, char** argv)
     //cout << "pts.size()" << pts.size() <<endl;
 
     //g.clear(1e32);
-    g.setMinMax(-3.0,3.0,
-    		    -3.0,3.0,
-				 0.25,3.0);
+    g.setMinMax(-1.0,1.0,
+    		    -1.0,1.0,
+				 0.25,2.0);
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
-    //build sphere and projectiveDistance
-    for(int i=0;i<g.getSizeX();i++){
-    	cout << i << endl;
-    	for(int j=0;j<g.getSizeY();j++)
-    		for(int k=0;k<g.getSizeZ();k++){
-    			float x=g.i2X(i);
-    			float y=g.j2Y(j);
-    			float z=g.k2Z(k);
-    			float p=0.20;
-    			float d0=sqrt(sqr(x)+sqr(y)+sqr(z))-0.25;
-    			float d1=sqrt(sqr(x-p)+sqr(y-p)+sqr(z-p))-0.125;
-    			float d2=sqrt(sqr(x+p)+sqr(y-p)+sqr(z-p))-0.125;
-    			float db=fmin(fmin(d0,d1),d2);
-    			float pd=di1.projectiveDistance(Point3f(x,y,z));
-    			float d=fmin(db,pd);
-    			//float d=d0+d1;
-    			if(abs(d)<0.035){
-    				TsdfVoxel vxl;
-    				vxl.d=d;
-    				g.setVoxel(i,j,k,vxl);
-    				//cout << d<<":"<< g.getVoxel(i,j,k)<<endl;
+	Point3f p3D;
+	TsdfVoxel vxl;
+	TsdfVoxel *vxlPtr;
+	float pd;
+    for(int u=0;u<di1.cols();u++){
+    	cout << u << endl;
+    	for(int v=0;v<di1.rows();v++){
+    		//units metres
+    		if(di1.isGoodDepthPixel(u,v)){
+				Point3f rp3D=di1.getPoint3D(u,v);
+				Vec3b c=di1.getColor(u,v);
+				float d=di1.getDepth(u,v);
+    			for(float dt=-0.02;dt<0.02;dt+=0.005){
+    				p3D=di1.getPoint3Ddeep(u,v,d+dt);
+    				pd=di1.projectiveDistance(p3D);
+    				vxl.x=rp3D.x;
+    				vxl.y=rp3D.y;
+    				vxl.z=rp3D.z;
+    				vxl.r=c[2];
+    				vxl.g=c[1];
+    				vxl.b=c[0];
+    				vxl.d=pd;
+    				vxlPtr=g.getVoxelPtr(p3D.x,p3D.y,p3D.z);
+    				if(vxlPtr==NULL){
+        				g.setVoxel(p3D.x,p3D.y,p3D.z,vxl);
+    				}
+    				else{
+    					pd=vxlPtr->d;
+    					*vxlPtr=vxl;
+    					vxlPtr->d+=pd;
+    					vxlPtr->d/=2;
+    				}
     			}
-
     		}
+    	}
     }
+//    vector<Point3f> pts3D=di1.getPoints3D();
+//    vector<Vec3b> cs=di1.getColors();
+//    for(int idx=0;<pts3D;i++){
+//    	int i,j,k;
+//    	Point3f p=pts3D[idx];
+//    	Vec3b color=cs[idx];
+//		Point3f p3D=Point3f(x,y,z);
+//		float pd=di1.projectiveDistance(Point3f(x,y,z));
+//		float d=fmin(db,pd);
+//		//float d=d0+d1;
+//		if(abs(d)<0.035){
+//			TsdfVoxel vxl;
+//			Point2f uv=di1.project(p3D);
+//			Point3f rp3D=di1.getPoint3D(uv);
+//			Vec3b c=di1.getColor(uv);
+//			vxl.x=rp3D.x;
+//			vxl.y=rp3D.y;
+//			vxl.z=rp3D.z;
+//			vxl.r=c[2];
+//			vxl.g=c[1];
+//			vxl.b=c[0];
+//			vxl.d=d;
+//			g.setVoxel(i,j,k,vxl);
+//			//cout << d<<":"<< g.getVoxel(i,j,k)<<endl;
+//		}
+//
+//    }
+    //build sphere and projectiveDistance
+//    for(int i=0;i<g.getSizeX();i++){
+//    	cout << i << endl;
+//    	for(int j=0;j<g.getSizeY();j++)
+//    		for(int k=0;k<g.getSizeZ();k++){
+//    			float x=g.i2X(i);
+//    			float y=g.j2Y(j);
+//    			float z=g.k2Z(k);
+//    			float p=0.20;
+//    			float d0=sqrt(sqr(x)+sqr(y)+sqr(z))-0.25;
+//    			float d1=sqrt(sqr(x-p)+sqr(y-p)+sqr(z-p))-0.125;
+//    			float d2=sqrt(sqr(x+p)+sqr(y-p)+sqr(z-p))-0.125;
+//    			float db=fmin(fmin(d0,d1),d2);
+//    			Point3f p3D=Point3f(x,y,z);
+//    			float pd=di1.projectiveDistance(Point3f(x,y,z));
+//    			float d=fmin(db,pd);
+//    			//float d=d0+d1;
+//    			if(abs(d)<0.035){
+//    				TsdfVoxel vxl;
+//        			Point2f uv=di1.project(p3D);
+//        			Point3f rp3D=di1.getPoint3D(uv);
+//        			Vec3b c=di1.getColor(uv);
+//        			vxl.x=rp3D.x;
+//        			vxl.y=rp3D.y;
+//        			vxl.z=rp3D.z;
+//        			vxl.r=c[2];
+//        			vxl.g=c[1];
+//        			vxl.b=c[0];
+//    				vxl.d=d;
+//    				g.setVoxel(i,j,k,vxl);
+//    				//cout << d<<":"<< g.getVoxel(i,j,k)<<endl;
+//    			}
+//    		}
+//    }
     cout << g.getVoxelsIdx().size() <<endl;
 //    cout << g.getChildrenPos(0b100,0b010,0b100,2) << endl;
 //    cout << g.getChildrenPos(0b100,0b010,0b101,1) << endl;
@@ -311,6 +391,7 @@ int main(int argc, char** argv)
 //    cout << goct.getVoxel(0b100,0b010,0b100) << endl;
 //    cout << goct.getVoxel(0b100,0b010,0b101) << endl;
 //    cout << goct.getVoxel(0b100,0b011,0b101) << endl;
+//    cout << *goct.getVoxelPtr(0b100,0b010,0b100) << endl;
     buildMesh(g,mesh);
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
