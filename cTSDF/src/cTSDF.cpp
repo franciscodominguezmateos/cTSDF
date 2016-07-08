@@ -199,7 +199,7 @@ void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
 //    		for(int k=0;k<t.getSize()-1;k++)	{
     int i,j,k;
     TsdfVoxel vxl;
-    for(int idx:g.getVoxelsIdx()){
+    for(Idx idx:g.getVoxelsIdx()){
        	g.getIJKfromIdx(idx,i,j,k);
     			grid.p[0].x = g.i2X(i);
     			grid.p[0].y = g.j2Y(j);

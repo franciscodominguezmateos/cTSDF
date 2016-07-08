@@ -14,10 +14,13 @@
 
 using  namespace std;
 
+struct Idx{
+	int i,j,k;
+};
 template <class T>
 class GridOctree {
 	int sizeX,sizeY,sizeZ;
-	vector<int>voxelsIdx;
+	vector<Idx>voxelsIdx;
 	float minX,maxX;
 	float minY,maxY;
 	float minZ,maxZ;
@@ -26,11 +29,11 @@ class GridOctree {
 public:
 	GridOctree(int sizeX=128,int sizeY=128,int sizeZ=128):
 		sizeX(sizeZ),sizeY(sizeY),sizeZ(sizeZ),
-		voxelsIdx(vector<int>()),
+		voxelsIdx(vector<Idx>()),
 		minX(0),maxX(1),
 		minY(0),maxY(1),
 		minZ(0),maxZ(1),
-		nodeRoot(new GridOctreeNode<T>()),level(10){
+		nodeRoot(new GridOctreeNode<T>()),level(32){
 	}
 	inline int getChildrenPos(int i,int j,int k,int level){
 		int ibit=i>>level & 1;
@@ -126,7 +129,7 @@ public:
 	inline void setVoxel(int i,int j,int k,T v){
 		T *p=new T(v);//T need a copy constructor
 		insertNode(i,j,k,p);
-		int idx=getIdx(i,j,k);
+		Idx idx=getIdx(i,j,k);
 		voxelsIdx.push_back(idx);
 	}
 	inline void setVoxel(float x,float y,float z,T v){
@@ -168,15 +171,14 @@ public:
 		j=getYIdx(y);
 		k=getZIdx(k);
 	}
-	inline int getIdx(int &i,int &j,int &k){
-		return i+j*sizeX+k*sizeX*sizeY;
+	inline Idx getIdx(int &i,int &j,int &k){
+		Idx idx={i,j,k};
+		return idx;
 	}
-	inline void getIJKfromIdx(int idx,int &i, int &j,int &k){
-		i=idx % sizeX;
-		idx/=sizeX;
-		j=idx %sizeY;
-		idx/=sizeY;
-		k=idx;
+	inline void getIJKfromIdx(Idx idx,int &i, int &j,int &k){
+		i=idx.i;
+		j=idx.j;
+		k=idx.k;
 	}
 	inline float i2X(int i){
 		float j=(float)i/(sizeX-1);
@@ -221,7 +223,7 @@ public:
 	inline int getSizeX(){return sizeX;}
 	inline int getSizeY(){return sizeY;}
 	inline int getSizeZ(){return sizeX;}
-	inline vector<int> &getVoxelsIdx(){
+	inline vector<Idx> &getVoxelsIdx(){
 		return voxelsIdx;
 	}
 	inline void clear(T zeros){

@@ -31,7 +31,7 @@ public:
 		return children[0]==NULL & children[1]==NULL &
 			   children[2]==NULL & children[3]==NULL &
 			   children[4]==NULL & children[5]==NULL &
-			   children[6]==NULL & children[6]==NULL;
+			   children[6]==NULL & children[7]==NULL;
 	}
 	vector<T*> getLeaves(){
 		vector<T*> v;
