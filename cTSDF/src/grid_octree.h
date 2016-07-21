@@ -33,7 +33,10 @@ public:
 		minX(0),maxX(1),
 		minY(0),maxY(1),
 		minZ(0),maxZ(1),
-		nodeRoot(new GridOctreeNode<T>()),level(32){
+		nodeRoot(new GridOctreeNode<T>()),level(16){
+	}
+	~GridOctree(){
+		delete nodeRoot;
 	}
 	inline int getChildrenPos(int i,int j,int k,int level){
 		int ibit=i>>level & 1;
@@ -183,17 +186,17 @@ public:
 	inline float i2X(int i){
 		float j=(float)i/(sizeX-1);
 		float d=maxX-minX;
-		return minX+d*j;
+		return minX+d*j+voxelSizeX()/2;
 	}
 	inline float j2Y(int i){
 		float j=(float)i/(sizeY-1);
 		float d=maxY-minY;
-		return minY+d*j;
+		return minY+d*j+voxelSizeY()/2;
 	}
 	inline float k2Z(int i){
 		float j=(float)i/(sizeZ-1);
 		float d=maxZ-minZ;
-		return minZ+d*j;
+		return minZ+d*j+voxelSizeZ()/2;
 	}
 	inline void ijk2XYZ(int i,int j,int k,float &x,float &y,float &z){
 		x=i2X(i);
@@ -228,7 +231,7 @@ public:
 	}
 	inline void clear(T zeros){
 	}
-	~GridOctree(){}
+
 };
 
 

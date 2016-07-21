@@ -19,10 +19,16 @@ public:
 	GridOctreeNode *children[8];// this could be **children to save memory
 //public:
 	GridOctreeNode(){
+		value=NULL;
 		for(int i=0;i<8;i++)
 			children[i]=NULL;
 	}
 	~GridOctreeNode(){
+		if(value!=NULL)
+			delete value;
+		for(int i=0;i<8;i++)
+			if(children[i]!=NULL)
+				delete children[i];
 	}
 	GridOctreeNode **getChildren(){
 		return children;
@@ -48,6 +54,7 @@ public:
 		}
 		return v;
 	}
+	//leves is from root=0 to leaf
 	vector<GridOctreeNode*> getNodesAtLevel(int level){
 		vector<GridOctreeNode*> v;
 		if(level==0){

@@ -319,6 +319,7 @@ int main(int argc, char** argv)
     		}
     	}
     }
+
 //    vector<Point3f> pts3D=di1.getPoints3D();
 //    vector<Vec3b> cs=di1.getColors();
 //    for(int idx=0;<pts3D;i++){
