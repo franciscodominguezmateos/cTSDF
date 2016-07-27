@@ -55,23 +55,25 @@ void displayMe(void)
     glPushMatrix();
      //glTranslatef(-di1.getCentroid().x, di1.getCentroid().y, di1.getCentroid().z+1);
 
-     if(wires) di1.glRender();
+      if(wires) di1.glRender();
       //di2.glRender();
+      /*
       glBegin(GL_TRIANGLES);
       for(int i=0;i<mesh.size();i++){
     	  TRIANGLE t=mesh[i];
     	  Point3f color=colors[i];
-          glColor4f(color.x,color.y,color.z,0.0);
-          //glNormal3f(t.n[0].x,-t.n[0].y,-t.n[0].z);
-    	  glVertex3f(t.p[0].x,-t.p[0].y,-t.p[0].z);
+          //if(wires) glColor4f(color.x,color.y,color.z,0.0);
+          glNormal3f(t.n[0].x,t.n[0].y,t.n[0].z);
+    	  glVertex3f(t.p[0].x,t.p[0].y,t.p[0].z);
           //glColor4f(0,1,0,0.1);
-          //glNormal3f(t.n[1].x,-t.n[1].y,-t.n[1].z);
-    	  glVertex3f(t.p[1].x,-t.p[1].y,-t.p[1].z);
+          glNormal3f(t.n[1].x,t.n[1].y,t.n[1].z);
+    	  glVertex3f(t.p[1].x,t.p[1].y,t.p[1].z);
           //glColor4f(0,0,1,0.1);
-          //glNormal3f(t.n[2].x,-t.n[2].y,-t.n[2].z);
-    	  glVertex3f(t.p[2].x,-t.p[2].y,-t.p[2].z);
+          glNormal3f(t.n[2].x,t.n[2].y,t.n[2].z);
+    	  glVertex3f(t.p[2].x,t.p[2].y,t.p[2].z);
       }
       glEnd();
+      */
 //      glColor3f(1,1,0);
 //	  glBegin(GL_POINTS);
 //      for(Point3f p:vpts)
@@ -243,7 +245,7 @@ void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
     			grid.val[7] =  vxl.d;
     			int	n = PolygoniseCube(grid,0.0,triangles);
     			for (int l=0;l<n;l++){
-    				//computeNormals(&triangles[l]);
+    				computeNormals(&triangles[l]);
     				mesh.push_back(triangles[l]);
     				Point3f color;
     				color.x=vxl.r/255.0;
@@ -252,6 +254,46 @@ void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
     				colors.push_back(color);
     			}
     	//	}
+    }
+}
+void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
+	Point3f p3D, p3Dg;
+	TsdfVoxel vxl;
+	TsdfVoxel *vxlPtr;
+	float pd;
+    for(int u=0;u<di1.cols();u++){
+    	cout << u << endl;
+    	for(int v=0;v<di1.rows();v++){
+    		//units metres
+    		if(di1.isGoodDepthPixel(u,v)){
+				Point3f rp3D=di1.getPoint3D(u,v);
+				Vec3b c=di1.getColor(u,v);
+				float d=di1.getDepth(u,v);
+    			for(float dt=-0.02;dt<=0.02;dt+=0.005){
+    				p3D=di1.getPoint3Ddeep(u,v,d+dt);
+    				pd=di1.projectiveDistance(p3D);
+    				vxl.x=rp3D.x;
+    				vxl.y=rp3D.y;
+    				vxl.z=rp3D.z;
+    				vxl.r=c[2];
+    				vxl.g=c[1];
+    				vxl.b=c[0];
+    				vxl.d=pd;
+    				p3Dg=di1.toGlobal(p3D);
+    				//p3Dg=di1.getR()*Mat(p3D)+di1.getT();
+    				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
+    				if(vxlPtr==NULL){
+        				g.setVoxel(p3Dg.x,p3Dg.y,p3Dg.z,vxl);
+    				}
+    				else{
+    					pd=vxlPtr->d;
+    					*vxlPtr=vxl;
+    					vxlPtr->d+=pd;
+    					vxlPtr->d/=2;
+    				}
+    			}
+    		}
+    	}
     }
 }
 #define sqr(x) ((x)*(x))
@@ -269,6 +311,8 @@ int main(int argc, char** argv)
 	DepthImage dImg2(basepath,posI+1);
     di1=dImg1;//.sparse();
     di1.bilateralDepthFilter();
+    cout << "R" << di1.getR() << endl;
+    cout << "t" << di1.getT() << endl;
     di2=dImg2.sparse();
     //di=dImg1;
     cout << di1.getCentroid()<< " centroid"<<endl;
@@ -283,43 +327,7 @@ int main(int argc, char** argv)
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
-	Point3f p3D;
-	TsdfVoxel vxl;
-	TsdfVoxel *vxlPtr;
-	float pd;
-    for(int u=0;u<di1.cols();u++){
-    	cout << u << endl;
-    	for(int v=0;v<di1.rows();v++){
-    		//units metres
-    		if(di1.isGoodDepthPixel(u,v)){
-				Point3f rp3D=di1.getPoint3D(u,v);
-				Vec3b c=di1.getColor(u,v);
-				float d=di1.getDepth(u,v);
-    			for(float dt=-0.02;dt<0.02;dt+=0.005){
-    				p3D=di1.getPoint3Ddeep(u,v,d+dt);
-    				pd=di1.projectiveDistance(p3D);
-    				vxl.x=rp3D.x;
-    				vxl.y=rp3D.y;
-    				vxl.z=rp3D.z;
-    				vxl.r=c[2];
-    				vxl.g=c[1];
-    				vxl.b=c[0];
-    				vxl.d=pd;
-    				vxlPtr=g.getVoxelPtr(p3D.x,p3D.y,p3D.z);
-    				if(vxlPtr==NULL){
-        				g.setVoxel(p3D.x,p3D.y,p3D.z,vxl);
-    				}
-    				else{
-    					pd=vxlPtr->d;
-    					*vxlPtr=vxl;
-    					vxlPtr->d+=pd;
-    					vxlPtr->d/=2;
-    				}
-    			}
-    		}
-    	}
-    }
-
+    //updateGrid(g,di1);
 //    vector<Point3f> pts3D=di1.getPoints3D();
 //    vector<Vec3b> cs=di1.getColors();
 //    for(int idx=0;<pts3D;i++){
