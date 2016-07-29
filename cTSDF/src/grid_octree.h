@@ -33,7 +33,7 @@ public:
 		minX(0),maxX(1),
 		minY(0),maxY(1),
 		minZ(0),maxZ(1),
-		nodeRoot(new GridOctreeNode<T>()),level(16){
+		nodeRoot(new GridOctreeNode<T>()),level(7){
 	}
 	~GridOctree(){
 		delete nodeRoot;
@@ -231,6 +231,7 @@ public:
 	}
 	inline void clear(T zeros){
 	}
+	inline void setLevel(int level){this->level=level;}
 
 };
 
