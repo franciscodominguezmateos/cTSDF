@@ -31,7 +31,7 @@ GLfloat pitch = 0.0;
 GLfloat t=-3.0f;
 
 DepthImage di1,di2;
-int level=8;
+int level=10;
 GridOctree<TsdfVoxel> g(1<<level,1<<level,1<<level);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
@@ -287,7 +287,7 @@ void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
 				Point3f rp3D=di1.getPoint3D(u,v);
 				Vec3b c=di1.getColor(u,v);
 				float d=di1.getDepth(u,v);
-    			for(float dt=-0.02;dt<=0.02;dt+=0.01){
+    			for(float dt=-0.01;dt<=0.01;dt+=0.001){
     				p3D=di1.getPoint3Ddeep(u,v,d+dt);
     				pd=di1.projectiveDistance(p3D);
     				vxl.x=rp3D.x;
@@ -297,10 +297,10 @@ void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
     				vxl.g=c[1];
     				vxl.b=c[0];
     				vxl.d=pd;
-    				vxl.wd=1;
-    				vxl.wr=1;
-    				vxl.wg=1;
-    				vxl.wb=1;
+    				vxl.wd=1/vxl.z;
+    				vxl.wr=1/vxl.z;
+    				vxl.wg=1/vxl.z;
+    				vxl.wb=1/vxl.z;
     				p3Dg=di1.toGlobal(p3D);
     				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
     				if(vxlPtr==NULL){
@@ -369,7 +369,7 @@ int main(int argc, char** argv)
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
-    for(int i=1;i<100;i+=1){
+    for(int i=1;i<20;i+=1){
     	cout<<i<<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
