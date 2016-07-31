@@ -31,7 +31,7 @@ GLfloat pitch = 0.0;
 GLfloat t=-3.0f;
 
 DepthImage di1,di2;
-int level=9;
+int level=10;
 GridOctree<TsdfVoxel> g(1<<level,1<<level,1<<level);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
@@ -292,8 +292,9 @@ void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
 				Point3f rp3D=di1.getPoint3D(u,v);
 				Vec3b c=di1.getColor(u,v);
 				float d=di1.getDepth(u,v);
-				//if(d>1) continue;
-				float tau=sz*truncationDistance(d);
+				if(d>2.5) continue;
+				if(g.isOut(rp3D.x,rp3D.y,rp3D.z)) continue;
+				float tau=sz*2;//truncationDistance(d);
 				float tau2=tau*2;
 				float itau=sz;
 				//cout << "d   =" << d << endl;
@@ -351,20 +352,30 @@ void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
     	}
     }
 }
-//void rayMarching(g,t){
-//	for(int u=0;u<640;u++){
-//		for(int v=0;v<480;v++){
-//
-//		}
-//	}
-//}
+void rayMarching(GridOctree<TsdfVoxel> &g,DepthImage &di1){
+	for(int u=0;u<di1.cols();u++){
+		cout << "u="<<u<<endl;
+		for(int v=0;v<di1.rows();v++){
+			TsdfVoxel *vxlPtr=NULL;
+			float d=10e32;
+			for(int dt=0;dt<g.getSizeZ() && d>0.0;dt++){
+				Point3f p3D=di1.getPoint3Ddeep(u,v,dt*g.voxelSizeZ());
+				Point3f p3Dg=di1.toGlobal(p3D);
+				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
+				if(vxlPtr!=NULL){
+					d=vxlPtr->d;
+				}
+			}
+ 		}
+	}
+}
 #define sqr(x) ((x)*(x))
 int main(int argc, char** argv)
 {
 	string basepath;
 	if ( argc != 2 )
 		{
-	        printf("usage: cRGB pathToRGBDdataset \n");
+	        printf("usage: cTSDF pathToRGBDdataset \n");
 	        return -1;
 	}
 	basepath=argv[1];
@@ -390,14 +401,16 @@ int main(int argc, char** argv)
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
-    for(int i=1;i<400;i+=1){
+    for(int i=1;i<3;i+=1){
     	cout<<"i="<<i<<endl;
         cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
     	updateGrid(g,di1);
     }
-
+    cout << "comienzo"<<endl;
+    rayMarching(g,di1);
+    cout << "fin"<<endl;
     //build sphere and projectiveDistance
 //    for(int i=0;i<g.getSizeX();i++){
 //    	cout << i << endl;
