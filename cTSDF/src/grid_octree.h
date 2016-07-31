@@ -57,6 +57,9 @@ public:
 		return nodeRoot;
 	}
 	inline bool isEmpty(int i,int j,int k){
+		if(i>=sizeX) return true;
+		if(j>=sizeY) return true;
+		if(k>=sizeZ) return true;
 		int nPos;
 		GridOctreeNode<T> *nodeRoot=this->nodeRoot;
 		for(int l=level;l>=0;l--){
@@ -88,6 +91,9 @@ public:
 	inline T getVoxel(int i,int j,int k){
 		int nPos;
 		T empty;
+		if(i>=sizeX) return empty;
+		if(j>=sizeY) return empty;
+		if(k>=sizeZ) return empty;
 		GridOctreeNode<T> *nodeRoot=this->nodeRoot;
 		for(int l=level;l>=0;l--){
 			nPos=getChildrenPos(i,j,k,l);
@@ -109,6 +115,9 @@ public:
 	}
 	//NULL if the voxel doesn't exist
 	inline T *getVoxelPtr(int i,int j,int k){
+		if(i>=sizeX) return NULL;
+		if(j>=sizeY) return NULL;
+		if(k>=sizeZ) return NULL;
 		int nPos;
 		GridOctreeNode<T> *nodeRoot=this->nodeRoot;
 		for(int l=level;l>=0;l--){
@@ -130,6 +139,9 @@ public:
 		return getVoxelPtr(i,j,k);
 	}
 	inline void setVoxel(int i,int j,int k,T v){
+		if(i>=sizeX) return;
+		if(j>=sizeY) return;
+		if(k>=sizeZ) return;
 		T *p=new T(v);//T need a copy constructor
 		insertNode(i,j,k,p);
 		Idx idx=getIdx(i,j,k);

@@ -31,7 +31,7 @@ GLfloat pitch = 0.0;
 GLfloat t=-3.0f;
 
 DepthImage di1,di2;
-int level=10;
+int level=9;
 GridOctree<TsdfVoxel> g(1<<level,1<<level,1<<level);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
@@ -274,20 +274,34 @@ void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
     	//	}
     }
 }
+float truncationDistance(float d){
+	return ((int)d+1)*1.5;
+}
+// 30/7/2016 adding tau=truncation Distance
 void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
 	Point3f p3D, p3Dg;
 	TsdfVoxel vxl;
 	TsdfVoxel *vxlPtr;
 	float pd;
-    for(int u=0;u<di1.cols();u++){
-    	if(u%300==0) cout << u << endl;
+	float sz=g.voxelSizeZ();//grid Z size in m
+	for(int u=0;u<di1.cols();u++){
+    	//if(u%300==0) cout << u << endl;
     	for(int v=0;v<di1.rows();v++){
     		//units metres
     		if(di1.isGoodDepthPixel(u,v)){
 				Point3f rp3D=di1.getPoint3D(u,v);
 				Vec3b c=di1.getColor(u,v);
 				float d=di1.getDepth(u,v);
-    			for(float dt=-0.01;dt<=0.01;dt+=0.001){
+				//if(d>1) continue;
+				float tau=sz*truncationDistance(d);
+				float tau2=tau*2;
+				float itau=sz;
+				//cout << "d   =" << d << endl;
+//				cout << "sz  =" << sz << endl;
+//				cout << "tau=" << tau << endl;
+//				cout << "itau=" << itau  <<endl;
+    			for(float dt=-tau;dt<=tau;dt+=itau){
+    				//cout << "dt="<< dt <<endl;
     				p3D=di1.getPoint3Ddeep(u,v,d+dt);
     				pd=di1.projectiveDistance(p3D);
     				vxl.x=rp3D.x;
@@ -297,10 +311,10 @@ void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
     				vxl.g=c[1];
     				vxl.b=c[0];
     				vxl.d=pd;
-    				vxl.wd=1/vxl.z;
-    				vxl.wr=1/vxl.z;
-    				vxl.wg=1/vxl.z;
-    				vxl.wb=1/vxl.z;
+    				vxl.wd=1/tau2/(vxl.z*vxl.z);
+    				vxl.wr=1/tau2/(vxl.z*vxl.z);
+    				vxl.wg=1/tau2/(vxl.z*vxl.z);
+    				vxl.wb=1/tau2/(vxl.z*vxl.z);
     				p3Dg=di1.toGlobal(p3D);
     				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
     				if(vxlPtr==NULL){
@@ -337,6 +351,13 @@ void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
     	}
     }
 }
+//void rayMarching(g,t){
+//	for(int u=0;u<640;u++){
+//		for(int v=0;v<480;v++){
+//
+//		}
+//	}
+//}
 #define sqr(x) ((x)*(x))
 int main(int argc, char** argv)
 {
@@ -363,14 +384,15 @@ int main(int argc, char** argv)
 
     //g.clear(1e32);
 	g.setLevel(level);
-    g.setMinMax(-1.0,1.0,
-    		    -1.0,1.0,
-				 0.25,2.0);
+    g.setMinMax(-3.0,3.0,
+    		    -3.0,3.0,
+				-3.0,3.0);
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
-    for(int i=1;i<20;i+=1){
-    	cout<<i<<endl;
+    for(int i=1;i<400;i+=1){
+    	cout<<"i="<<i<<endl;
+        cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
     	updateGrid(g,di1);
