@@ -16,24 +16,33 @@ class GridOctreeNode {
 public:
 	//this two attibutes could be a unions since *value is only used in leave and children in *branches
 	T *value;
-	GridOctreeNode *children[8];// this could be **children to save memory
+	//GridOctreeNode *children[8];// this could be **children to save memory
+	GridOctreeNode **children;// this could be **children to save memory
 //public:
 	GridOctreeNode(){
 		value=NULL;
+		children=NULL;
+		//initChildren();
+	}
+	void initChildren(){
+		children=new GridOctreeNode*[8];
 		for(int i=0;i<8;i++)
 			children[i]=NULL;
 	}
 	~GridOctreeNode(){
 		if(value!=NULL)
 			delete value;
-		for(int i=0;i<8;i++)
-			if(children[i]!=NULL)
-				delete children[i];
+		if(children!=NULL)
+			for(int i=0;i<8;i++)
+				if(children[i]!=NULL)
+					delete children[i];
 	}
 	GridOctreeNode **getChildren(){
 		return children;
 	}
 	bool isLeaf(){
+		if(children==NULL)
+			return true;
 		return children[0]==NULL & children[1]==NULL &
 			   children[2]==NULL & children[3]==NULL &
 			   children[4]==NULL & children[5]==NULL &

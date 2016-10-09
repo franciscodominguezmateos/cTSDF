@@ -2,7 +2,7 @@
  * grid_octree.h
  *
  *  Created on: Jul 4, 2016
- *      Author: francisco
+ *      Author: Francisco
  */
 
 #ifndef GRID_OCTREE_H_
@@ -34,6 +34,7 @@ public:
 		minY(0),maxY(1),
 		minZ(0),maxZ(1),
 		nodeRoot(new GridOctreeNode<T>()),level(7){
+		nodeRoot->initChildren();
 	}
 	~GridOctree(){
 		delete nodeRoot;
@@ -94,6 +95,8 @@ public:
 		for(int l=level;l>=0;l--){
 			nPos=getChildrenPos(i,j,k,l);
 			node=new GridOctreeNode<T>();
+			if(l!=0)
+				node->initChildren();
 			nodeRoot->getChildren()[nPos]=node;
 			nodeRoot=node;
 		}
