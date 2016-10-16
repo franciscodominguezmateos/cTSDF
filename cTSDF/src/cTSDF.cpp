@@ -33,12 +33,15 @@ GLfloat pitch = 0.0;
 GLfloat t=-3.0f;
 
 DepthImage di1,di2;
-int level=10;
-float l=3;//width/2 of the cube grid
+int level=9;
+float l=2;//width/2 of the cube grid
 GridOctree<TsdfVoxel> g(1<<level,1<<level,1<<level);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
-vector<Point3f> colors;
+struct colorVertex{
+	Point3f c[3];
+};
+vector<colorVertex> colors;
 
 bool wires=true;
 bool friccion=true;
@@ -53,10 +56,10 @@ void displayMe(void)
 //    gluLookAt (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     GLfloat lightpos[] = {3.0, 3.0, 3.0, 0.0};
     glTranslatef(0.0f, 0.0f, t);
-    glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
     glRotatef(yaw  ,0.0,1.0,0.0);
     glRotatef(pitch,1.0,0.0,0.0);
     glRotatef(roll ,0.0,0.0,1.0);
+    glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
     glPushMatrix();
      //glTranslatef(-di1.getCentroid().x, di1.getCentroid().y, di1.getCentroid().z+1);
 
@@ -66,17 +69,18 @@ void displayMe(void)
       glBegin(GL_TRIANGLES);
       for(int i=0;i<mesh.size();i++){
     	  TRIANGLE t=mesh[i];
-    	  Point3f color=colors[i];
-          if(wires)
-        	  glColor4f(color.x,color.y,color.z,0.0);
-          else
+    	  colorVertex color=colors[i];
+          if(!wires)
         	  glColor3f(1,1,1);
+          if(wires) glColor3f(color.c[0].x,color.c[0].y,color.c[0].z);
           glNormal3f(t.n[0].x,t.n[0].y,t.n[0].z);
     	  glVertex3f(t.p[0].x,t.p[0].y,t.p[0].z);
           //glColor4f(0,1,0,0.1);
+    	  if(wires) glColor3f(color.c[1].x,color.c[1].y,color.c[1].z);
           glNormal3f(t.n[1].x,t.n[1].y,t.n[1].z);
     	  glVertex3f(t.p[1].x,t.p[1].y,t.p[1].z);
           //glColor4f(0,0,1,0.1);
+    	  if(wires)glColor3f(color.c[2].x,color.c[2].y,color.c[2].z);
           glNormal3f(t.n[2].x,t.n[2].y,t.n[2].z);
     	  glVertex3f(t.p[2].x,t.p[2].y,t.p[2].z);
       }
@@ -253,8 +257,18 @@ inline S getTsdf(S x,S y,S z){
 		return g.voxelSizeX()*2;//max distance TODO
 	}
 }
+inline Point3f getTsdfColor(S x,S y,S z){
+	TsdfVoxel *vxl;
+	vxl=g.getVoxelPtr(x,y,z);
+	if(vxl!=NULL){
+		return Point3f(vxl->getR()/255.0,vxl->getG()/255.0,vxl->getB()/255.0);//this should be trilineal interpolated
+	}
+	else{
+		return Point3f(1,0,0);//max distance TODO
+	}
+}
 //not trilineal interpolated
-void computeVertexNormals(TRIANGLE *t){
+void computeVertexNormals(TRIANGLE *t,colorVertex *cv){
 	int i,j,k;
 	S x1,y1,z1;
 	S d,dx,dy,dz;
@@ -282,6 +296,10 @@ void computeVertexNormals(TRIANGLE *t){
 		t->n[idx].x=n.x;
 		t->n[idx].y=n.y;
 		t->n[idx].z=n.z;
+		//Color calculation
+		//Alway must exit voxel i,j,k
+		Point3f c=getTsdfColor(x,y,z);
+		cv->c[idx]=c;;
 	}
 }
 void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
@@ -344,14 +362,11 @@ void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
     			if(vxl.d==empty.d) continue;
     			grid.val[7] =  vxl.d;
     			int	n = PolygoniseCube(grid,0.0,triangles);
+				colorVertex color;
     			for (int l=0;l<n;l++){
     				//computeNormals(&triangles[l]);
-    				computeVertexNormals(&triangles[l]);
+    				computeVertexNormals(&triangles[l],&color);
     				mesh.push_back(triangles[l]);
-    				Point3f color;
-    				color.x=vxl.r/255.0;
-    				color.y=vxl.g/255.0;
-    				color.z=vxl.b/255.0;
     				colors.push_back(color);
     			}
     	//	}

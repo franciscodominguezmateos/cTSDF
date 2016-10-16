@@ -23,6 +23,15 @@ public:
 	inline float getD(){
 		return d;
 	}
+	inline float getR(){
+		return r;
+	}
+	inline float getG(){
+		return g;
+	}
+	inline float getB(){
+		return b;
+	}
 };
 
 
