@@ -8,7 +8,6 @@
 #ifndef GRID_OCTREE_H_
 #define GRID_OCTREE_H_
 
-
 #include <vector>
 #include "grid_octree_node.h"
 

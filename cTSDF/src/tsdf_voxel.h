@@ -20,6 +20,9 @@ public:
 	}
 	~TsdfVoxel(){
 	}
+	inline float getD(){
+		return d;
+	}
 };
 
 

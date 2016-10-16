@@ -21,6 +21,8 @@ extern "C" {
 
 using namespace std;
 
+typedef float S;
+
 GLint ancho=400;
 GLint alto=400;
 int hazPerspectiva = 1;
@@ -32,6 +34,7 @@ GLfloat t=-3.0f;
 
 DepthImage di1,di2;
 int level=10;
+float l=3;//width/2 of the cube grid
 GridOctree<TsdfVoxel> g(1<<level,1<<level,1<<level);
 vector<Point3f> vpts;
 vector<TRIANGLE> mesh;
@@ -48,9 +51,9 @@ void displayMe(void)
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 //    gluLookAt (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    GLfloat lightpos[] = {0.0, 15., 5., 0.0};
-    glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
+    GLfloat lightpos[] = {3.0, 3.0, 3.0, 0.0};
     glTranslatef(0.0f, 0.0f, t);
+    glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
     glRotatef(yaw  ,0.0,1.0,0.0);
     glRotatef(pitch,1.0,0.0,0.0);
     glRotatef(roll ,0.0,0.0,1.0);
@@ -64,17 +67,51 @@ void displayMe(void)
       for(int i=0;i<mesh.size();i++){
     	  TRIANGLE t=mesh[i];
     	  Point3f color=colors[i];
-          if(wires) glColor4f(color.x,color.y,color.z,0.0);
-          //glNormal3f(t.n[0].x,t.n[0].y,t.n[0].z);
+          if(wires)
+        	  glColor4f(color.x,color.y,color.z,0.0);
+          else
+        	  glColor3f(1,1,1);
+          glNormal3f(t.n[0].x,t.n[0].y,t.n[0].z);
     	  glVertex3f(t.p[0].x,t.p[0].y,t.p[0].z);
           //glColor4f(0,1,0,0.1);
-          //glNormal3f(t.n[1].x,t.n[1].y,t.n[1].z);
+          glNormal3f(t.n[1].x,t.n[1].y,t.n[1].z);
     	  glVertex3f(t.p[1].x,t.p[1].y,t.p[1].z);
           //glColor4f(0,0,1,0.1);
-          //glNormal3f(t.n[2].x,t.n[2].y,t.n[2].z);
+          glNormal3f(t.n[2].x,t.n[2].y,t.n[2].z);
     	  glVertex3f(t.p[2].x,t.p[2].y,t.p[2].z);
       }
+      //float l=3;
       glEnd();
+      glPushMatrix();
+      //glTranslatef(-l,-l,-l);
+      glColor3f(1,0,1);
+      glutWireCube(l*2);
+      glBegin(GL_LINES);
+       glColor3f(1,0,0);
+       glVertex3f(0,0,0);
+       glVertex3f(l,0,0);
+       glColor3f(0,1,0);
+       glVertex3f(0,0,0);
+       glVertex3f(0,l,0);
+       glColor3f(0,0,1);
+       glVertex3f(0,0,0);
+       glVertex3f(0,0,l);
+      glEnd();
+      glPopMatrix();
+      /*
+     int i,j,k;
+     float x,y,z;
+     float s=g.voxelSizeX();
+     for(Idx idx:g.getVoxelsIdx()){
+    	 glPushMatrix();
+    	 glColor3f(0,0,1);
+         g.getIJKfromIdx(idx,i,j,k);
+         g.ijk2XYZ(i,j,k,x,y,z);
+         glTranslatef(x,y,z);
+         glutWireCube(s);
+         glPopMatrix();
+     }
+     */
 
 //      glColor3f(1,1,0);
 //	  glBegin(GL_POINTS);
@@ -112,6 +149,7 @@ void idle()
 {
     displayMe();
     usleep(100000);
+    cv::waitKey(1);
 }
 void keyPressed (unsigned char key, int x, int y) {
 	x++;
@@ -202,6 +240,50 @@ void computeNormals(TRIANGLE *t){
 	t->n[2].y=n.y;
 	t->n[2].z=n.z;
 }
+float truncationDistance(float d){
+	return ((int)d+1)*1.5;
+}
+inline S getTsdf(S x,S y,S z){
+	TsdfVoxel *vxl;
+	vxl=g.getVoxelPtr(x,y,z);
+	if(vxl!=NULL){
+		return vxl->getD();//this should be trilineal interpolated
+	}
+	else{
+		return g.voxelSizeX()*2;//max distance TODO
+	}
+}
+//not trilineal interpolated
+void computeVertexNormals(TRIANGLE *t){
+	int i,j,k;
+	S x1,y1,z1;
+	S d,dx,dy,dz;
+	S x,y,z;
+	XYZ n;
+	for(int idx=0;idx<3;idx++){
+		x=t->p[idx].x;
+		y=t->p[idx].y;
+		z=t->p[idx].z;
+		g.XYZ2ijk(x,y,z,i,j,k);
+		x1=g.i2X(i+1);
+		y1=g.j2Y(j+1);
+		z1=g.k2Z(k+1);
+		d =getTsdf(x ,y ,z );
+		dx=getTsdf(x1,y ,z );
+		dy=getTsdf(x ,y1,z );
+		dz=getTsdf(x ,y ,z1);
+		n.x=dx-d;
+		n.y=dy-d;
+		n.z=dz-d;
+		double m=sqrt(n.x*n.x+n.y*n.y+n.z*n.z);
+		n.x/=m;
+		n.y/=m;
+		n.z/=m;
+		t->n[idx].x=n.x;
+		t->n[idx].y=n.y;
+		t->n[idx].z=n.z;
+	}
+}
 void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
 	TRIANGLE triangles[10];
     GRIDCELL grid;
@@ -263,7 +345,8 @@ void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
     			grid.val[7] =  vxl.d;
     			int	n = PolygoniseCube(grid,0.0,triangles);
     			for (int l=0;l<n;l++){
-    				computeNormals(&triangles[l]);
+    				//computeNormals(&triangles[l]);
+    				computeVertexNormals(&triangles[l]);
     				mesh.push_back(triangles[l]);
     				Point3f color;
     				color.x=vxl.r/255.0;
@@ -274,9 +357,7 @@ void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
     	//	}
     }
 }
-float truncationDistance(float d){
-	return ((int)d+1)*1.5;
-}
+
 // 30/7/2016 adding tau=truncation Distance
 void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
 	Point3f p3D, p3Dg;
@@ -295,13 +376,13 @@ void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
 				if(d>2.5) continue;
 				if(g.isOut(rp3D.x,rp3D.y,rp3D.z)) continue;
 				float tau=sz*2;//truncationDistance(d);
-				float tau2=tau*2;
-				float itau=sz;
+				float tau2=tau;
+				float itau=sz/2.0;
 				//cout << "d   =" << d << endl;
 //				cout << "sz  =" << sz << endl;
 //				cout << "tau=" << tau << endl;
 //				cout << "itau=" << itau  <<endl;
-    			for(float dt=-tau;dt<=tau;dt+=itau){
+    			for(float dt=-tau;dt<=sz;dt+=itau){
     				//cout << "dt="<< dt <<endl;
     				p3D=di1.getPoint3Ddeep(u,v,d+dt);
     				pd=di1.projectiveDistance(p3D);
@@ -312,10 +393,10 @@ void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
     				vxl.g=c[1];
     				vxl.b=c[0];
     				vxl.d=pd;
-    				vxl.wd=1/tau2/(vxl.z*vxl.z);
-    				vxl.wr=1/tau2/(vxl.z*vxl.z);
-    				vxl.wg=1/tau2/(vxl.z*vxl.z);
-    				vxl.wb=1/tau2/(vxl.z*vxl.z);
+    				vxl.wd=1;///tau2/(vxl.z*vxl.z);
+    				vxl.wr=1;///tau2/(vxl.z*vxl.z);
+    				vxl.wg=1;///tau2/(vxl.z*vxl.z);
+    				vxl.wb=1;///tau2/(vxl.z*vxl.z);
     				p3Dg=di1.toGlobal(p3D);
     				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
     				if(vxlPtr==NULL){
@@ -353,19 +434,27 @@ void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
     }
 }
 void rayMarching(GridOctree<TsdfVoxel> &g,DepthImage &di1){
-	for(int u=0;u<di1.cols();u++){
+	float sz=g.voxelSizeZ();
+	for(int u=0;u<di1.cols();u+=1){
 		cout << "u="<<u<<endl;
-		for(int v=0;v<di1.rows();v++){
+		for(int v=0;v<di1.rows();v+=1){
 			TsdfVoxel *vxlPtr=NULL;
 			float d=10e32;
-			for(int dt=0;dt<g.getSizeZ() && d>0.0;dt++){
+			float dt=0.5;
+			float idt=sz*4;
+			for(;dt<g.getSizeZ() && d>0.0;dt+=idt){
 				Point3f p3D=di1.getPoint3Ddeep(u,v,dt*g.voxelSizeZ());
 				Point3f p3Dg=di1.toGlobal(p3D);
 				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
 				if(vxlPtr!=NULL){
 					d=vxlPtr->d;
+					idt=d;
 				}
 			}
+			if(d<0)
+				di1.setDepth(u,v,dt*g.voxelSizeZ());
+			else
+				di1.setDepth(u,v,0.0);
  		}
 	}
 }
@@ -395,22 +484,24 @@ int main(int argc, char** argv)
 
     //g.clear(1e32);
 	g.setLevel(level);
-    g.setMinMax(-3.0,3.0,
-    		    -3.0,3.0,
-				-3.0,3.0);
+    g.setMinMax(-l,l,
+    		    -l,l,
+				-l,l);
     //for(Point3f p:pts){
     //	t.setVoxel(p.x,p.y,p.z,0.0);
     //}
-    for(int i=1;i<3;i+=1){
+    for(int i=0;i<100;i+=1){
     	cout<<"i="<<i<<endl;
-        cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
     	updateGrid(g,di1);
+        cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
     }
-    cout << "comienzo"<<endl;
-    rayMarching(g,di1);
-    cout << "fin"<<endl;
+    //cout << "Comienzo RayMarching"<<endl;
+    //di1=DepthImage(basepath,30);
+    //rayMarching(g,di1);
+    //cv::imshow("hola",di1.getDepth());
+    //cout << "fin"<<endl;
     //build sphere and projectiveDistance
 //    for(int i=0;i<g.getSizeX();i++){
 //    	cout << i << endl;

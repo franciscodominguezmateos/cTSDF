@@ -142,5 +142,4 @@ public:
 	~Grid(){delete grid;}
 };
 
-
 #endif /* GRID_H_ */
