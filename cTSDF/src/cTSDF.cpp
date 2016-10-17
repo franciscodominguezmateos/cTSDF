@@ -5,19 +5,7 @@
 // Copyright   : Your copyright notice
 // Description : easy TSDF in C++, Ansi-style
 //============================================================================
-#include <stdio.h>
-#include <vector>
-#include <utility>
-#include <unistd.h>
-#include <GL/glut.h>
-#include <depthImage.h>
-//#include "tsdf.h"
-//#include "grid.h"
-#include "grid_octree.h"
-#include "tsdf_voxel.h"
-extern "C" {
- #include "poligonise.h"
-}
+#include "TSDFoctGrid.h""
 
 using namespace std;
 
@@ -33,21 +21,18 @@ GLfloat pitch = 0.0;
 GLfloat t=-3.0f;
 
 DepthImage di1,di2;
-int level=9;
-float l=2;//width/2 of the cube grid
-GridOctree<TsdfVoxel> g(1<<level,1<<level,1<<level);
-vector<Point3f> vpts;
-vector<TRIANGLE> mesh;
-struct colorVertex{
-	Point3f c[3];
-};
-vector<colorVertex> colors;
 
 bool wires=true;
+bool boxes=false;
 bool friccion=true;
+int i=0;
+string basepath;
 
 GLfloat light0_ambient[] ={0.2, 0.2, 0.2, 1.0};
 GLfloat light0_diffuse[] ={0.8, 0.8, 0.8, 1.0};
+
+TSDFoctGrid tog;
+GridOctree<TsdfVoxel> &g=tog.g;
 
 void displayMe(void)
 {
@@ -61,67 +46,7 @@ void displayMe(void)
     glRotatef(roll ,0.0,0.0,1.0);
     glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
     glPushMatrix();
-     //glTranslatef(-di1.getCentroid().x, di1.getCentroid().y, di1.getCentroid().z+1);
-
-      //if(wires) di1.glRender();
-      //di2.glRender();
-
-      glBegin(GL_TRIANGLES);
-      for(int i=0;i<mesh.size();i++){
-    	  TRIANGLE t=mesh[i];
-    	  colorVertex color=colors[i];
-          if(!wires)
-        	  glColor3f(1,1,1);
-          if(wires) glColor3f(color.c[0].x,color.c[0].y,color.c[0].z);
-          glNormal3f(t.n[0].x,t.n[0].y,t.n[0].z);
-    	  glVertex3f(t.p[0].x,t.p[0].y,t.p[0].z);
-          //glColor4f(0,1,0,0.1);
-    	  if(wires) glColor3f(color.c[1].x,color.c[1].y,color.c[1].z);
-          glNormal3f(t.n[1].x,t.n[1].y,t.n[1].z);
-    	  glVertex3f(t.p[1].x,t.p[1].y,t.p[1].z);
-          //glColor4f(0,0,1,0.1);
-    	  if(wires)glColor3f(color.c[2].x,color.c[2].y,color.c[2].z);
-          glNormal3f(t.n[2].x,t.n[2].y,t.n[2].z);
-    	  glVertex3f(t.p[2].x,t.p[2].y,t.p[2].z);
-      }
-      //float l=3;
-      glEnd();
-      glPushMatrix();
-      //glTranslatef(-l,-l,-l);
-      glColor3f(1,0,1);
-      glutWireCube(l*2);
-      glBegin(GL_LINES);
-       glColor3f(1,0,0);
-       glVertex3f(0,0,0);
-       glVertex3f(l,0,0);
-       glColor3f(0,1,0);
-       glVertex3f(0,0,0);
-       glVertex3f(0,l,0);
-       glColor3f(0,0,1);
-       glVertex3f(0,0,0);
-       glVertex3f(0,0,l);
-      glEnd();
-      glPopMatrix();
-      /*
-     int i,j,k;
-     float x,y,z;
-     float s=g.voxelSizeX();
-     for(Idx idx:g.getVoxelsIdx()){
-    	 glPushMatrix();
-    	 glColor3f(0,0,1);
-         g.getIJKfromIdx(idx,i,j,k);
-         g.ijk2XYZ(i,j,k,x,y,z);
-         glTranslatef(x,y,z);
-         glutWireCube(s);
-         glPopMatrix();
-     }
-     */
-
-//      glColor3f(1,1,0);
-//	  glBegin(GL_POINTS);
-//      for(Point3f p:vpts)
-//    	  glVertex3f(p.x,-p.y,-p.z);
-//      glEnd();
+    tog.glDrawMesh();
     glPopMatrix();
     glutSwapBuffers();
     angle++;
@@ -198,11 +123,11 @@ void keyPressed (unsigned char key, int x, int y) {
       break;
     case 'v':
     case 'V':
-      wires=true;
+      tog.wires=true;
       break;
     case 'b':
     case 'B':
-      wires=false;
+      tog.wires=false;
       break;
     case 'f':
     case 'F':
@@ -212,304 +137,43 @@ void keyPressed (unsigned char key, int x, int y) {
     case 'G':
       friccion=false;
       break;
+    case 'c':
+    case 'C':
+      tog.boxes=!tog.boxes;
+      break;
+    case 'i':
+    case 'I':
+    	cout<<"i="<<i<<endl;
+    	di1=DepthImage(basepath,i);
+        di1.bilateralDepthFilter();
+    	tog.updateGrid(di1);
+        cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
+        tog.mesh.clear();
+        tog.colors.clear();
+        tog.buildMesh();
+        cout <<"mesh="<< tog.mesh.size() <<endl;
+        i++;
+      break;
 
     case 27:   // escape
       exit(0);
       break;
     }
 }
-void computeNormals(TRIANGLE *t){
-	XYZ v1,v2;
-	v1.x=t->p[1].x-t->p[0].x;
-	v1.y=t->p[1].y-t->p[0].y;
-	v1.z=t->p[1].z-t->p[0].z;
-	v2.x=t->p[2].x-t->p[1].x;
-	v2.y=t->p[2].y-t->p[1].y;
-	v2.z=t->p[2].z-t->p[1].z;
-	XYZ n;
-	n.x=v1.y*v2.z-v1.z*v2.y;
-	n.y=v1.x*v2.z-v1.z*v2.x;
-	n.z=v1.x*v2.y-v1.y*v2.x;
-	double d=sqrt(n.x*n.x+n.y*n.y+n.z*n.z);
-	n.x/=d;
-	n.y/=d;
-	n.z/=d;
-	t->n[0].x=n.x;
-	t->n[0].y=n.y;
-	t->n[0].z=n.z;
-	t->n[1].x=n.x;
-	t->n[1].y=n.y;
-	t->n[1].z=n.z;
-	t->n[2].x=n.x;
-	t->n[2].y=n.y;
-	t->n[2].z=n.z;
-}
-float truncationDistance(float d){
-	return ((int)d+1)*1.5;
-}
-inline S getTsdf(S x,S y,S z){
-	TsdfVoxel *vxl;
-	vxl=g.getVoxelPtr(x,y,z);
-	if(vxl!=NULL){
-		return vxl->getD();//this should be trilineal interpolated
-	}
-	else{
-		return g.voxelSizeX()*2;//max distance TODO
-	}
-}
-inline Point3f getTsdfColor(S x,S y,S z){
-	TsdfVoxel *vxl;
-	vxl=g.getVoxelPtr(x,y,z);
-	if(vxl!=NULL){
-		return Point3f(vxl->getR()/255.0,vxl->getG()/255.0,vxl->getB()/255.0);//this should be trilineal interpolated
-	}
-	else{
-		return Point3f(1,0,0);//max distance TODO
-	}
-}
-//not trilineal interpolated
-void computeVertexNormals(TRIANGLE *t,colorVertex *cv){
-	int i,j,k;
-	S x1,y1,z1;
-	S d,dx,dy,dz;
-	S x,y,z;
-	XYZ n;
-	for(int idx=0;idx<3;idx++){
-		x=t->p[idx].x;
-		y=t->p[idx].y;
-		z=t->p[idx].z;
-		g.XYZ2ijk(x,y,z,i,j,k);
-		x1=g.i2X(i+1);
-		y1=g.j2Y(j+1);
-		z1=g.k2Z(k+1);
-		d =getTsdf(x ,y ,z );
-		dx=getTsdf(x1,y ,z );
-		dy=getTsdf(x ,y1,z );
-		dz=getTsdf(x ,y ,z1);
-		n.x=dx-d;
-		n.y=dy-d;
-		n.z=dz-d;
-		double m=sqrt(n.x*n.x+n.y*n.y+n.z*n.z);
-		n.x/=m;
-		n.y/=m;
-		n.z/=m;
-		t->n[idx].x=n.x;
-		t->n[idx].y=n.y;
-		t->n[idx].z=n.z;
-		//Color calculation
-		//Alway must exit voxel i,j,k
-		Point3f c=getTsdfColor(x,y,z);
-		cv->c[idx]=c;;
-	}
-}
-void buildMesh(GridOctree<TsdfVoxel> &g,vector<TRIANGLE> &mesh){
-	TRIANGLE triangles[10];
-    GRIDCELL grid;
-//    for(int i=0;i<t.getSize()-1;i++){
-//    	cout << i << endl;
-//    	for(int j=0 ;j<t.getSize()-1;j++)
-//    		for(int k=0;k<t.getSize()-1;k++)	{
-    int i,j,k;
-    TsdfVoxel vxl,empty;
-    for(Idx idx:g.getVoxelsIdx()){
-       	g.getIJKfromIdx(idx,i,j,k);
-    			grid.p[0].x = g.i2X(i);
-    			grid.p[0].y = g.j2Y(j);
-    			grid.p[0].z = g.k2Z(k);
-    			vxl=g.getVoxel(i,j,k);
-    			if(vxl.d==empty.d) continue;
-    			grid.val[0] = vxl.d;
-                grid.p[1].x = g.i2X(i+1);
-                grid.p[1].y = g.j2Y(j);
-                grid.p[1].z = g.k2Z(k);
-    			vxl=g.getVoxel(i+1,j,k);
-    			if(vxl.d==empty.d) continue;
-    			grid.val[1] =  vxl.d;
-                grid.p[2].x = g.i2X(i+1);
-                grid.p[2].y = g.j2Y(j+1);
-                grid.p[2].z = g.k2Z(k);
-    			vxl=g.getVoxel(i+1,j+1,k);
-    			if(vxl.d==empty.d) continue;
-    			grid.val[2] =  vxl.d;
-                grid.p[3].x = g.i2X(i);
-                grid.p[3].y = g.j2Y(j+1);
-                grid.p[3].z = g.k2Z(k);
-    			vxl=g.getVoxel(i,j+1,k);
-    			if(vxl.d==empty.d) continue;
-    			grid.val[3] =  vxl.d;
-                grid.p[4].x = g.i2X(i);
-                grid.p[4].y = g.j2Y(j);
-                grid.p[4].z = g.k2Z(k+1);
-    			vxl=g.getVoxel(i,j,k+1);
-    			if(vxl.d==empty.d) continue;
-    			grid.val[4] =  vxl.d;
-                grid.p[5].x = g.i2X(i+1);
-                grid.p[5].y = g.j2Y(j);
-                grid.p[5].z = g.k2Z(k+1);
-    			vxl=g.getVoxel(i+1,j,k+1);
-    			if(vxl.d==empty.d) continue;
-    			grid.val[5] =  vxl.d;
-                grid.p[6].x = g.i2X(i+1);
-                grid.p[6].y = g.j2Y(j+1);
-                grid.p[6].z = g.k2Z(k+1);
-    			vxl=g.getVoxel(i+1,j+1,k+1);
-    			if(vxl.d==empty.d) continue;
-    			grid.val[6] =  vxl.d;
-                grid.p[7].x = g.i2X(i);
-                grid.p[7].y = g.j2Y(j+1);
-                grid.p[7].z = g.k2Z(k+1);
-    			vxl=g.getVoxel(i,j+1,k+1);
-    			if(vxl.d==empty.d) continue;
-    			grid.val[7] =  vxl.d;
-    			int	n = PolygoniseCube(grid,0.0,triangles);
-				colorVertex color;
-    			for (int l=0;l<n;l++){
-    				//computeNormals(&triangles[l]);
-    				computeVertexNormals(&triangles[l],&color);
-    				mesh.push_back(triangles[l]);
-    				colors.push_back(color);
-    			}
-    	//	}
-    }
-}
-
-// 30/7/2016 adding tau=truncation Distance
-void updateGrid(GridOctree<TsdfVoxel> &g,DepthImage &di1){
-	Point3f p3D, p3Dg;
-	TsdfVoxel vxl;
-	TsdfVoxel *vxlPtr;
-	float pd;
-	float sz=g.voxelSizeZ();//grid Z size in m
-	for(int u=0;u<di1.cols();u++){
-    	//if(u%300==0) cout << u << endl;
-    	for(int v=0;v<di1.rows();v++){
-    		//units metres
-    		if(di1.isGoodDepthPixel(u,v)){
-				Point3f rp3D=di1.getPoint3D(u,v);
-				Vec3b c=di1.getColor(u,v);
-				float d=di1.getDepth(u,v);
-				if(d>2.5) continue;
-				if(g.isOut(rp3D.x,rp3D.y,rp3D.z)) continue;
-				float tau=sz*2;//truncationDistance(d);
-				float tau2=tau;
-				float itau=sz/2.0;
-				//cout << "d   =" << d << endl;
-//				cout << "sz  =" << sz << endl;
-//				cout << "tau=" << tau << endl;
-//				cout << "itau=" << itau  <<endl;
-    			for(float dt=-tau;dt<=sz;dt+=itau){
-    				//cout << "dt="<< dt <<endl;
-    				p3D=di1.getPoint3Ddeep(u,v,d+dt);
-    				pd=di1.projectiveDistance(p3D);
-    				vxl.x=rp3D.x;
-    				vxl.y=rp3D.y;
-    				vxl.z=rp3D.z;
-    				vxl.r=c[2];
-    				vxl.g=c[1];
-    				vxl.b=c[0];
-    				vxl.d=pd;
-    				vxl.wd=1;///tau2/(vxl.z*vxl.z);
-    				vxl.wr=1;///tau2/(vxl.z*vxl.z);
-    				vxl.wg=1;///tau2/(vxl.z*vxl.z);
-    				vxl.wb=1;///tau2/(vxl.z*vxl.z);
-    				p3Dg=di1.toGlobal(p3D);
-    				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
-    				if(vxlPtr==NULL){
-        				g.setVoxel(p3Dg.x,p3Dg.y,p3Dg.z,vxl);
-    				}
-    				else{
-    					float &D=vxlPtr->d;
-    					float &W=vxlPtr->wd;
-    					float &R=vxlPtr->r;
-    					float &G=vxlPtr->g;
-    					float &B=vxlPtr->b;
-    					float &WR=vxlPtr->wr;
-    					float &WG=vxlPtr->wg;
-    					float &WB=vxlPtr->wb;
-    					float &d=vxl.d;
-    					float &w=vxl.wd;
-    					float &r=vxl.r;
-    					float &g=vxl.g;
-    					float &b=vxl.b;
-    					float &wr=vxl.wr;
-    					float &wg=vxl.wg;
-    					float &wb=vxl.wb;
-    					D=(W*D+w*d)/(W+w);
-    					W+=w;
-    					R=(WR*R+wr*r)/(WR+wr);
-    					G=(WR*G+wg*g)/(WG+wg);
-    					B=(WB*B+wb*b)/(WB+wb);
-    					WR+=wr;
-    					WG+=wg;
-    					WB+=wb;
-    				}
-    			}
-    		}
-    	}
-    }
-}
-void rayMarching(GridOctree<TsdfVoxel> &g,DepthImage &di1){
-	float sz=g.voxelSizeZ();
-	for(int u=0;u<di1.cols();u+=1){
-		cout << "u="<<u<<endl;
-		for(int v=0;v<di1.rows();v+=1){
-			TsdfVoxel *vxlPtr=NULL;
-			float d=10e32;
-			float dt=0.5;
-			float idt=sz*4;
-			for(;dt<g.getSizeZ() && d>0.0;dt+=idt){
-				Point3f p3D=di1.getPoint3Ddeep(u,v,dt*g.voxelSizeZ());
-				Point3f p3Dg=di1.toGlobal(p3D);
-				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
-				if(vxlPtr!=NULL){
-					d=vxlPtr->d;
-					idt=d;
-				}
-			}
-			if(d<0)
-				di1.setDepth(u,v,dt*g.voxelSizeZ());
-			else
-				di1.setDepth(u,v,0.0);
- 		}
-	}
-}
 #define sqr(x) ((x)*(x))
 int main(int argc, char** argv)
 {
-	string basepath;
 	if ( argc != 2 )
 		{
 	        printf("usage: cTSDF pathToRGBDdataset \n");
 	        return -1;
 	}
 	basepath=argv[1];
-	int posI=0;
-	DepthImage dImg1(basepath,posI);
-	DepthImage dImg2(basepath,posI+1);
-    di1=dImg1;//.sparse();
-    di1.bilateralDepthFilter();
-    cout << "R" << di1.getR() << endl;
-    cout << "t" << di1.getT() << endl;
-    di2=dImg2.sparse();
-    //di=dImg1;
-    cout << di1.getCentroid()<< " centroid"<<endl;
-    cout << di1.getPoints3D().size()/1000 << "mil filtered points" <<endl;
-    //vector<Point3f> pts=di1.getPoints3DCentered();
-    //cout << "pts.size()" << pts.size() <<endl;
-
-    //g.clear(1e32);
-	g.setLevel(level);
-    g.setMinMax(-l,l,
-    		    -l,l,
-				-l,l);
-    //for(Point3f p:pts){
-    //	t.setVoxel(p.x,p.y,p.z,0.0);
-    //}
-    for(int i=0;i<100;i+=1){
+    for(;i<1;i+=1){
     	cout<<"i="<<i<<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
-    	updateGrid(g,di1);
+    	tog.updateGrid(di1);
         cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
     }
     //cout << "Comienzo RayMarching"<<endl;
@@ -517,53 +181,9 @@ int main(int argc, char** argv)
     //rayMarching(g,di1);
     //cv::imshow("hola",di1.getDepth());
     //cout << "fin"<<endl;
-    //build sphere and projectiveDistance
-//    for(int i=0;i<g.getSizeX();i++){
-//    	cout << i << endl;
-//    	for(int j=0;j<g.getSizeY();j++)
-//    		for(int k=0;k<g.getSizeZ();k++){
-//    			float x=g.i2X(i);
-//    			float y=g.j2Y(j);
-//    			float z=g.k2Z(k);
-//    			float p=0.20;
-//    			float d0=sqrt(sqr(x)+sqr(y)+sqr(z))-0.25;
-//    			float d1=sqrt(sqr(x-p)+sqr(y-p)+sqr(z-p))-0.125;
-//    			float d2=sqrt(sqr(x+p)+sqr(y-p)+sqr(z-p))-0.125;
-//    			float db=fmin(fmin(d0,d1),d2);
-//    			Point3f p3D=Point3f(x,y,z);
-//    			float pd=di1.projectiveDistance(Point3f(x,y,z));
-//    			float d=fmin(db,pd);
-//    			//float d=d0+d1;
-//    			if(abs(d)<0.035){
-//    				TsdfVoxel vxl;
-//        			Point2f uv=di1.project(p3D);
-//        			Point3f rp3D=di1.getPoint3D(uv);
-//        			Vec3b c=di1.getColor(uv);
-//        			vxl.x=rp3D.x;
-//        			vxl.y=rp3D.y;
-//        			vxl.z=rp3D.z;
-//        			vxl.r=c[2];
-//        			vxl.g=c[1];
-//        			vxl.b=c[0];
-//    				vxl.d=d;
-//    				g.setVoxel(i,j,k,vxl);
-//    				//cout << d<<":"<< g.getVoxel(i,j,k)<<endl;
-//    			}
-//    		}
-//    }
     cout << g.getVoxelsIdx().size() <<endl;
-//    cout << g.getChildrenPos(0b100,0b010,0b100,2) << endl;
-//    cout << g.getChildrenPos(0b100,0b010,0b101,1) << endl;
-//    GridOctree<float> goct;
-//    float v=5;
-//    goct.setVoxel(0b100,0b010,0b101,v);
-//    float v1=8;
-//    goct.setVoxel(0b100,0b010,0b100,v1);
-//    cout << goct.getVoxel(0b100,0b010,0b100) << endl;
-//    cout << goct.getVoxel(0b100,0b010,0b101) << endl;
-//    cout << goct.getVoxel(0b100,0b011,0b101) << endl;
-//    cout << *goct.getVoxelPtr(0b100,0b010,0b100) << endl;
-    buildMesh(g,mesh);
+    tog.buildMesh();
+    cout << tog.mesh.size() <<endl;
     glutInit(&argc, argv);
     glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     //glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
