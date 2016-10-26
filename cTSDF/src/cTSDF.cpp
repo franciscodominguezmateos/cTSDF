@@ -146,15 +146,19 @@ void keyPressed (unsigned char key, int x, int y) {
     	cout<<"i="<<i<<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
-    	tog.updateGrid(di1);
+        di2=di1.pyrDown(0.5);
+    	tog.updateGrid(di2);
+    	//imshow("di1",di1.getImg());
+    	imshow("di2",di2.getImg());
+    	imshow("ddw",di2.getDepth()/2.5);
+    	//imshow("dd1",di1.getDepth()/2.5);
         cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
         tog.mesh.clear();
         tog.colors.clear();
         tog.buildMesh();
         cout <<"mesh="<< tog.mesh.size() <<endl;
-        i++;
+        i+=3;
       break;
-
     case 27:   // escape
       exit(0);
       break;
@@ -169,11 +173,24 @@ int main(int argc, char** argv)
 	        return -1;
 	}
 	basepath=argv[1];
+	DepthImage di(basepath,0);
+	di.computeGrad();
+	di2=di.pyrDown(0.5);
+	imshow("di2",di2.getImg());
+	Mat gx=di2.getGradXImg();
+	double minGX,maxGX;
+	minMaxLoc(gx,&minGX,&maxGX);
+	float d=maxGX-minGX;
+	gx=gx-minGX;
+	gx=gx/d;
+	imshow("gX",gx);
+
     for(;i<1;i+=1){
     	cout<<"i="<<i<<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
-    	tog.updateGrid(di1);
+        di2=di1.pyrDown(0.5);
+    	tog.updateGrid(di2);
         cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
     }
     //cout << "Comienzo RayMarching"<<endl;

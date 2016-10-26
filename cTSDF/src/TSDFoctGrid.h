@@ -36,7 +36,7 @@ public:
 		Point3f c[3];
 	};
 	vector<colorVertex> colors;
-	TSDFoctGrid(int lev=10,float lp=2):level(lev),l(lp),g(GridOctree<TsdfVoxel>(1<<level,1<<level,1<<level)){
+	TSDFoctGrid(int lev=9,float lp=3):level(lev),l(lp),g(GridOctree<TsdfVoxel>(1<<level,1<<level,1<<level)){
 		g.setLevel(level);
 	    g.setMinMax(-l,l,
 	    		    -l,l,
@@ -195,6 +195,15 @@ public:
 	    }
 	}
 
+	float err(float z){
+		const float q=8;
+		const float b=0.075;
+		const float f=520;
+		const float K=q*b*f;
+		float e=K/2.0*(1.0/(float)((int)(K/z-0.5))-1/(float)((int)(K/z+0.5)));
+		//cout <<e<<endl;
+		return e ;
+	}
 	// 30/7/2016 adding tau=truncation Distance
 	void updateGrid(DepthImage &di1){
 		Point3f p3D, p3Dg;
@@ -210,11 +219,11 @@ public:
 					Point3f rp3D=di1.getPoint3D(u,v);
 					Vec3b c=di1.getColor(u,v);
 					float d=di1.getDepth(u,v);
-					if(d>1.5) continue;
+					if(d>1.25) continue;
 					if(g.isOut(rp3D.x,rp3D.y,rp3D.z)) continue;
 					float tau=sz*3;//truncationDistance(d);
-					float tau2=tau;
-					float itau=sz/2.0;
+					float tau2=tau*2;
+					float itau=sz/1.0;
 					//cout << "d   =" << d << endl;
 	//				cout << "sz  =" << sz << endl;
 	//				cout << "tau=" << tau << endl;
@@ -230,10 +239,11 @@ public:
 	    				vxl.g=c[1];
 	    				vxl.b=c[0];
 	    				vxl.d=pd;
-	    				vxl.wd=1;///tau2/(vxl.z*vxl.z);
-	    				vxl.wr=1;///tau2/(vxl.z*vxl.z);
-	    				vxl.wg=1;///tau2/(vxl.z*vxl.z);
-	    				vxl.wb=1;///tau2/(vxl.z*vxl.z);
+	    				float w=1/err(vxl.z);
+	    				vxl.wd=w;///tau2/(vxl.z*vxl.z);
+	    				vxl.wr=w;///tau2/(vxl.z*vxl.z);
+	    				vxl.wg=w;///tau2/(vxl.z*vxl.z);
+	    				vxl.wb=w;///tau2/(vxl.z*vxl.z);
 	    				p3Dg=di1.toGlobal(p3D);
 	    				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
 	    				if(vxlPtr==NULL){
