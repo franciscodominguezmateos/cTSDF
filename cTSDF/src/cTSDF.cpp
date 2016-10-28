@@ -19,6 +19,9 @@ GLfloat yaw = 0.0;
 GLfloat roll = 0.0;
 GLfloat pitch = 0.0;
 GLfloat t=-3.0f;
+int mx=-1,my=-1;        // Prevous mouse coordinates
+int rotangles[2] = {0}; // Panning angles
+float zoom = 1;         // zoom factor
 
 DepthImage di1,di2;
 
@@ -40,7 +43,12 @@ void displayMe(void)
     glLoadIdentity();
 //    gluLookAt (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     GLfloat lightpos[] = {3.0, 3.0, 3.0, 0.0};
-    glTranslatef(0.0f, 0.0f, t);
+    glScalef(zoom,zoom,zoom);
+    glRotatef(90,1,0,0);//put Z up
+    //glTranslatef(0,0,-3.5);
+    glTranslatef(0.0f, t, 0);
+    glRotatef(rotangles[0], 1,0,0);
+    glRotatef(rotangles[1], 0,0,1);
     glRotatef(yaw  ,0.0,1.0,0.0);
     glRotatef(pitch,1.0,0.0,0.0);
     glRotatef(roll ,0.0,0.0,1.0);
@@ -80,6 +88,28 @@ void idle()
     usleep(100000);
     cv::waitKey(1);
 }
+void mouseMoved(int x, int y)
+{
+    if (mx>=0 && my>=0) {
+        rotangles[0] += y-my;
+        rotangles[1] += x-mx;
+    }
+    mx = x;
+    my = y;
+}
+
+void mousePress(int button, int state, int x, int y)
+{
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        mx = x;
+        my = y;
+    }
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
+        mx = -1;
+        my = -1;
+    }
+}
+
 void keyPressed (unsigned char key, int x, int y) {
 	x++;
 	y++;
@@ -215,6 +245,8 @@ int main(int argc, char** argv)
     glutIdleFunc(idle);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyPressed); // Tell GLUT to use the method "keyPressed" for key presses
+    glutMotionFunc(&mouseMoved);
+    glutMouseFunc(&mousePress);
     glutMainLoop();
     return 0;
 }
