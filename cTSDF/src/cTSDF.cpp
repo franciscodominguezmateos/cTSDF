@@ -5,7 +5,7 @@
 // Copyright   : Your copyright notice
 // Description : easy TSDF in C++, Ansi-style
 //============================================================================
-#include "TSDFoctGrid.h""
+#include "TSDFoctGrid.h"
 
 using namespace std;
 
@@ -44,14 +44,15 @@ void displayMe(void)
 //    gluLookAt (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     GLfloat lightpos[] = {3.0, 3.0, 3.0, 0.0};
     glScalef(zoom,zoom,zoom);
-    glRotatef(90,1,0,0);//put Z up
+    glRotatef(-90,1,0,0);//put Z up
     //glTranslatef(0,0,-3.5);
-    glTranslatef(0.0f, t, 0);
+    glTranslatef(0.0f, -t, 0);
     glRotatef(rotangles[0], 1,0,0);
     glRotatef(rotangles[1], 0,0,1);
     glRotatef(yaw  ,0.0,1.0,0.0);
     glRotatef(pitch,1.0,0.0,0.0);
     glRotatef(roll ,0.0,0.0,1.0);
+    //glTranslatef(0,-2,0);
     glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
     glPushMatrix();
     tog.glDrawMesh();
@@ -76,7 +77,7 @@ void reshape(int width, int height)
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(60.0f, (GLfloat)width/(GLfloat)height, 0.5f, 200.0f);
+    gluPerspective(60.0f, (GLfloat)width/(GLfloat)height, 0.2f, 200.0f);
 
     glMatrixMode(GL_MODELVIEW);
     ancho = width;
@@ -91,8 +92,8 @@ void idle()
 void mouseMoved(int x, int y)
 {
     if (mx>=0 && my>=0) {
-        rotangles[0] += y-my;
-        rotangles[1] += x-mx;
+        rotangles[0] += (float)(y-my)/2.0;
+        rotangles[1] += (float)(x-mx)*0.5;
     }
     mx = x;
     my = y;
@@ -116,6 +117,10 @@ void keyPressed (unsigned char key, int x, int y) {
 	//printf("%c %d,",key,key);
     switch(key)
     {
+    case 'd':
+    case 'D':
+      tog.glPoints=!tog.glPoints;
+      break;
     case 'z':
     case 'Z':
       t+=0.1;
@@ -161,11 +166,19 @@ void keyPressed (unsigned char key, int x, int y) {
       break;
     case 'f':
     case 'F':
-      friccion=true;
+      tog.iBoxes+=0.01;
       break;
     case 'g':
     case 'G':
-      friccion=false;
+      tog.iBoxes-=0.01;
+      break;
+    case 'r':
+    case 'R':
+      tog.iBoxesW+=0.01;
+      break;
+    case 't':
+    case 'T':
+      tog.iBoxesW-=0.01;
       break;
     case 'c':
     case 'C':
@@ -180,14 +193,14 @@ void keyPressed (unsigned char key, int x, int y) {
     	tog.updateGrid(di2);
     	//imshow("di1",di1.getImg());
     	imshow("di2",di2.getImg());
-    	imshow("ddw",di2.getDepth()/2.5);
+    	//imshow("ddw",di2.getDepth()/2.5);
     	//imshow("dd1",di1.getDepth()/2.5);
         cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
         tog.mesh.clear();
         tog.colors.clear();
         tog.buildMesh();
         cout <<"mesh="<< tog.mesh.size() <<endl;
-        i+=3;
+        i+=1;
       break;
     case 27:   // escape
       exit(0);
@@ -207,6 +220,7 @@ int main(int argc, char** argv)
 	di.computeGrad();
 	di2=di.pyrDown(0.5);
 	imshow("di2",di2.getImg());
+	/*
 	Mat gx=di2.getGradXImg();
 	double minGX,maxGX;
 	minMaxLoc(gx,&minGX,&maxGX);
@@ -214,8 +228,9 @@ int main(int argc, char** argv)
 	gx=gx-minGX;
 	gx=gx/d;
 	imshow("gX",gx);
+	*/
 
-    for(;i<1;i+=1){
+    for(;i<100;i+=1){
     	cout<<"i="<<i<<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
@@ -237,7 +252,7 @@ int main(int argc, char** argv)
     // Enable blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glutInitWindowSize(700, 700);
+    glutInitWindowSize(700, 400);
     glutInitWindowPosition(250, 250);
     glutCreateWindow("cTSDF");
     init();
