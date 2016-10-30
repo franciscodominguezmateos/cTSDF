@@ -86,6 +86,62 @@ public:
 	float truncationDistance(float d){
 		return ((int)d+1)*1.5;
 	}
+	inline Point3f getVoxelCenter(int i,int j,int k){
+		Point3f v;
+		g.ijk2XYZ(i,j,k,v.x,v.y,v.z);
+		return v;
+	}
+	inline S getTsdfTriLineal(S x,S y,S z){
+		int xi,yi,zi;
+		g.XYZ2ijk(x,y,z,xi,yi,zi);
+		if(g.isOut(xi,yi,zi))
+			return std::numeric_limits<S>::quiet_NaN ();
+		Point3f v=getVoxelCenter(xi,yi,zi);
+        // return (octree_->getContainingVoxel (x, y, z)->d_);
+		if (x < v.x) xi -= 1;
+		if (y < v.y) yi -= 1;
+		if (z < v.z) zi -= 1;
+		v=getVoxelCenter(xi,yi,zi);
+		Point3f vx   = getVoxelCenter (xi+1, yi, zi);
+		Point3f vy   = getVoxelCenter (xi, yi+1, zi);
+		Point3f vz   = getVoxelCenter (xi, yi, zi+1);
+		Point3f vxy  = getVoxelCenter (xi+1, yi+1, zi);
+		Point3f vxz  = getVoxelCenter (xi+1, yi, zi+1);
+		Point3f vyz  = getVoxelCenter (xi, yi+1, zi+1);
+		Point3f vxyz = getVoxelCenter (xi+1, yi+1, zi+1);
+		float a = (x - v.x) /g.voxelSizeX();
+		float b = (y - v.y) /g.voxelSizeX();
+		float c = (z - v.z) /g.voxelSizeX();
+		// Should be between 0 and 1
+		const TsdfVoxel *vo    = g.getVoxelPtr(v.x, v.y, v.z);
+		const TsdfVoxel* vox   = g.getVoxelPtr(vx.x, vx.y, vx.z);
+		const TsdfVoxel* voy   = g.getVoxelPtr(vy.x, vy.y, vy.z);
+		const TsdfVoxel* voz   = g.getVoxelPtr(vz.x, vz.y, vz.z);
+		const TsdfVoxel* voxy  = g.getVoxelPtr(vxy.x, vxy.y, vxy.z);
+		const TsdfVoxel* voxz  = g.getVoxelPtr(vxz.x, vxz.y, vxz.z);
+		const TsdfVoxel* voyz  = g.getVoxelPtr(vyz.x, vyz.y, vyz.z);
+		const TsdfVoxel* voxyz = g.getVoxelPtr(vxyz.x, vxyz.y, vxyz.z);
+		bool valid=true;
+		valid &= (vo   !=NULL);
+		valid &= (vox  !=NULL);
+		valid &= (voy  !=NULL);
+		valid &= (voz  !=NULL);
+		valid &= (voxy !=NULL);
+		valid &= (voxz !=NULL);
+		valid &= (voyz !=NULL);
+		valid &= (voxyz!=NULL);
+		if (valid)
+		  return (vo->d   * (1 - a) * (1 - b) * (1 - c) +
+		          voz->d  * (1 - a) * (1 - b) * (c)     +
+		          voy->d  * (1 - a) * (b)     * (1 - c) +
+		          voyz->d * (1 - a) * (b)     * (c)     +
+		          vox->d  * (a)     * (1 - b) * (1 - c) +
+		          voxz->d * (a)     * (1 - b) * (c)     +
+		          voxy->d * (a)     * (b)     * (1 - c) +
+		          voxyz->d* (a)     * (b)     * (c));
+		else
+			return std::numeric_limits<S>::quiet_NaN ();
+	}
 	inline S getTsdf(S x,S y,S z){
 		TsdfVoxel *vxl;
 		vxl=g.getVoxelPtr(x,y,z);
@@ -121,10 +177,10 @@ public:
 			x1=g.i2X(i+1);
 			y1=g.j2Y(j+1);
 			z1=g.k2Z(k+1);
-			d =getTsdf(x ,y ,z );
-			dx=getTsdf(x1,y ,z );
-			dy=getTsdf(x ,y1,z );
-			dz=getTsdf(x ,y ,z1);
+			d =getTsdfTriLineal(x ,y ,z );
+			dx=getTsdfTriLineal(x1,y ,z );
+			dy=getTsdfTriLineal(x ,y1,z );
+			dz=getTsdfTriLineal(x ,y ,z1);
 			n.x=dx-d;
 			n.y=dy-d;
 			n.z=dz-d;
