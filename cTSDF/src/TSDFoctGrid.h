@@ -41,7 +41,7 @@ public:
 		Point3f c[3];
 	};
 	vector<colorVertex> colors;
-	TSDFoctGrid(int lev=9,float lp=3):level(lev),l(lp),g(GridOctree<TsdfVoxel>(1<<level,1<<level,1<<level)){
+	TSDFoctGrid(int lev=10,float lp=2):level(lev),l(lp),g(GridOctree<TsdfVoxel>(1<<level,1<<level,1<<level)){
 		g.setLevel(level);
 	    g.setMinMax(-l,l,
 	    		    -l,l,
@@ -49,11 +49,11 @@ public:
 	    glPoints=true;
 	    wires=true;
 	    boxes=true;
-	    iBoxes=0.50;
-	    iBoxesW=0.01;
+	    iBoxes=-0.50;
+	    iBoxesW=1.01;
 	    float sz=g.voxelSizeZ();
-	    maxD=sz*16;
-	    minD=sz*2;
+	    maxD=sz*2;
+	    minD=sz;
 	    cout <<"VoxelSize="<<sz<<endl;
 	}
 	~TSDFoctGrid(){}
@@ -163,7 +163,7 @@ public:
 		}
 	}
 	//not trilineal interpolated
-	void computeVertexNormals(TRIANGLE *t,colorVertex *cv){
+	void computeVertexNormalsOLD(TRIANGLE *t,colorVertex *cv){
 		int i,j,k;
 		S x1,y1,z1;
 		S d,dx,dy,dz;
@@ -191,12 +191,37 @@ public:
 			t->n[idx].x=n.x;
 			t->n[idx].y=n.y;
 			t->n[idx].z=n.z;
-			/*
-			if(n.z<0)
-				cout <<"Normal pabajo"<<n.z<<endl;
-			else
-				cout <<"normal parrribaaaa"<<n.z<<endl;
-			*/
+			//Color calculation
+			//Alway must exit voxel i,j,k
+			Point3f c=getTsdfColor(x,y,z);
+			cv->c[idx]=c;
+		}
+	}
+	void computeVertexNormals(TRIANGLE *t,colorVertex *cv){
+		float delta=g.voxelSizeZ()*0.25;
+		int i,j,k;
+		S x1,y1,z1;
+		S d,dx,dy,dz;
+		S x,y,z;
+		XYZ n;
+		for(int idx=0;idx<3;idx++){
+			x=t->p[idx].x;
+			y=t->p[idx].y;
+			z=t->p[idx].z;
+			d =getTsdfTriLineal(x ,y ,z );
+			dx=getTsdfTriLineal(x+delta,y ,z );
+			dy=getTsdfTriLineal(x ,y+delta,z );
+			dz=getTsdfTriLineal(x ,y ,z+delta);
+			n.x=dx-d;
+			n.y=dy-d;
+			n.z=dz-d;
+			double m=sqrt(n.x*n.x+n.y*n.y+n.z*n.z);
+			n.x/=m;
+			n.y/=m;
+			n.z/=m;
+			t->n[idx].x=n.x;
+			t->n[idx].y=n.y;
+			t->n[idx].z=n.z;
 			//Color calculation
 			//Alway must exit voxel i,j,k
 			Point3f c=getTsdfColor(x,y,z);
@@ -314,8 +339,12 @@ public:
 		if(rp3D.z>1.5) return;
 		Vec3b c=di1.getColor(u,v);
 		float d=rp3D.z;//di1.getDepth(u,v);
+		//Point3f rp3Dc;
+		//g.XYZ2center(rp3D.x,rp3D.y,rp3D.z,rp3Dc.x,rp3Dc.y,rp3Dc.z);
+		//Point3f dif=rp3D-rp3Dc;
+		//float iD=sqrt(dif.dot(dif));
 		if(g.isOut(rp3D.x,rp3D.y,rp3D.z)) return;
-		for(float dt=-maxD;dt<=minD;dt+=sz){
+		for(float dt=-maxD;dt<=minD;dt+=sz/2){
 			//cout << "dt="<< dt <<endl;
 			p3D=di1.getPoint3Ddeep(u,v,d+dt);
 			pd =-dt;//di1.projectiveDistance(p3D);
@@ -409,17 +438,28 @@ public:
 	      glEnd();
 	      }
 	      if(glPoints){
-	      glBegin(GL_POINTS);
-		    TsdfVoxel *vxlPtr;
-	        int i,j,k;
-		    for(Idx idx:g.getVoxelsIdx()){
-		       	g.getIJKfromIdx(idx,i,j,k);
-		       	vxlPtr=g.getVoxelPtr(i,j,k);
-		       	if(vxlPtr==NULL) continue;
-		       	glColor3f(vxlPtr->r/255,vxlPtr->g/255,vxlPtr->b/255);
-		       	glVertex3f(vxlPtr->x,vxlPtr->y,vxlPtr->z);
-		    }
-	      glEnd();
+	      for(int i=0;i<mesh.size();i++){
+		      glBegin(GL_LINES);
+	    	  TRIANGLE t=mesh[i];
+	    	  float x=t.p[0].x;
+	          if(x>iBoxes+iBoxesW || x<iBoxes) continue;
+	    	  colorVertex color=colors[i];
+	          if(!wires)
+	        	  glColor3f(0,0,0);
+	          if(wires) glColor3f(color.c[0].x,color.c[0].y,color.c[0].z);
+	          glNormal3f(t.n[0].x,t.n[0].y,t.n[0].z);
+	    	  glVertex3f(t.p[0].x,t.p[0].y,t.p[0].z);
+	    	  if(wires) glColor3f(color.c[1].x,color.c[1].y,color.c[1].z);
+	          glNormal3f(t.n[1].x,t.n[1].y,t.n[1].z);
+	    	  glVertex3f(t.p[1].x,t.p[1].y,t.p[1].z);
+	    	  if(wires)glColor3f(color.c[2].x,color.c[2].y,color.c[2].z);
+	          glNormal3f(t.n[2].x,t.n[2].y,t.n[2].z);
+	    	  glVertex3f(t.p[2].x,t.p[2].y,t.p[2].z);
+	          if(wires) glColor3f(color.c[0].x,color.c[0].y,color.c[0].z);
+	          glNormal3f(t.n[0].x,t.n[0].y,t.n[0].z);
+	    	  glVertex3f(t.p[0].x,t.p[0].y,t.p[0].z);
+		      glEnd();
+	      }
 		  }
 	      glPushMatrix();
 	      //glTranslatef(-l,-l,-l);

@@ -24,6 +24,7 @@
 								<option id="gnu.cpp.compiler.exe.debug.option.optimization.level.1320043736" name="Optimization Level" superClass="gnu.cpp.compiler.exe.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.exe.debug.option.debugging.level.1630003776" name="Debug Level" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.1076847463" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="/opt/ros/kinetic/include/opencv-3.1.0-dev"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/depthimage}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/cVoxelGrids/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/poligonise}&quot;"/>
@@ -42,15 +43,17 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.101871087" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.646343240" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
 								<option id="gnu.cpp.link.option.paths.1016278199" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/depthimage/Debug}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/cOpenCV3DepthImage/Debug}&quot;"/>
+									<listOptionValue builtIn="false" value="/opt/ros/kinetic/lib"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/poligonise/Debug}&quot;"/>
 								</option>
 								<option id="gnu.cpp.link.option.libs.1164892218" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
-									<listOptionValue builtIn="false" value="depthimage"/>
+									<listOptionValue builtIn="false" value="cOpenCV3DepthImage"/>
+									<listOptionValue builtIn="false" value="opencv_imgcodecs3"/>
 									<listOptionValue builtIn="false" value="poligonise"/>
-									<listOptionValue builtIn="false" value="opencv_core"/>
-									<listOptionValue builtIn="false" value="opencv_imgproc"/>
-									<listOptionValue builtIn="false" value="opencv_highgui"/>
+									<listOptionValue builtIn="false" value="opencv_core3"/>
+									<listOptionValue builtIn="false" value="opencv_imgproc3"/>
+									<listOptionValue builtIn="false" value="opencv_highgui3"/>
 									<listOptionValue builtIn="false" value="GL"/>
 									<listOptionValue builtIn="false" value="GLU"/>
 									<listOptionValue builtIn="false" value="glut"/>

@@ -190,7 +190,7 @@ void keyPressed (unsigned char key, int x, int y) {
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
         di2=di1.pyrDown(0.5);
-    	tog.updateGrid(di2);
+    	tog.updateGrid(di1);
     	//imshow("di1",di1.getImg());
     	imshow("di2",di2.getImg());
     	//imshow("ddw",di2.getDepth()/2.5);
@@ -230,12 +230,12 @@ int main(int argc, char** argv)
 	imshow("gX",gx);
 	*/
 
-    for(;i<100;i+=1){
+    for(;i<1;i+=1){
     	cout<<"i="<<i<<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
         di2=di1.pyrDown(0.5);
-    	tog.updateGrid(di2);
+    	tog.updateGrid(di1);
         cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
     }
     //cout << "Comienzo RayMarching"<<endl;
