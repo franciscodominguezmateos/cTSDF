@@ -34,7 +34,7 @@ string basepath;
 GLfloat light0_ambient[] ={0.2, 0.2, 0.2, 1.0};
 GLfloat light0_diffuse[] ={0.8, 0.8, 0.8, 1.0};
 
-TSDFoctGrid tog;
+TSDFoctGrid tog(8);
 GridOctree<TsdfVoxel> &g=tog.g;
 
 void displayMe(void)
@@ -190,7 +190,7 @@ void keyPressed (unsigned char key, int x, int y) {
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
         di2=di1.pyrDown(0.5);
-    	tog.updateGrid(di1);
+    	tog.updateGrid2(di2);
     	//imshow("di1",di1.getImg());
     	imshow("di2",di2.getImg());
     	//imshow("ddw",di2.getDepth()/2.5);
@@ -230,12 +230,12 @@ int main(int argc, char** argv)
 	imshow("gX",gx);
 	*/
 
-    for(;i<1;i+=1){
+    for(;i<570;i+=5){
     	cout<<"i="<<i<<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
         di2=di1.pyrDown(0.5);
-    	tog.updateGrid(di1);
+    	tog.updateGrid2(di2);
         cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
     }
     //cout << "Comienzo RayMarching"<<endl;

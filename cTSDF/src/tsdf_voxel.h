@@ -13,7 +13,7 @@ public:
 	float x,y,z,d;
 	float wd;
 	float r,g,b;
-	float wr,wg,wb;
+	float wc;
 //public:
 	TsdfVoxel(){
 		d=1e32;
@@ -31,6 +31,9 @@ public:
 	}
 	inline float getB(){
 		return b;
+	}
+	inline void setXYZ(float x,float y,float z){
+		this->x=x;this->y=y;this->z=z;
 	}
 };
 

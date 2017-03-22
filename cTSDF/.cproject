@@ -24,7 +24,7 @@
 								<option id="gnu.cpp.compiler.exe.debug.option.optimization.level.1320043736" name="Optimization Level" superClass="gnu.cpp.compiler.exe.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.exe.debug.option.debugging.level.1630003776" name="Debug Level" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.1076847463" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="/opt/ros/kinetic/include/opencv-3.1.0-dev"/>
+									<listOptionValue builtIn="false" value="/opt/ros/kinetic/include/opencv-3.2.0"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/depthimage}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/cVoxelGrids/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/poligonise}&quot;"/>

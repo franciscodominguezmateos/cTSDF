@@ -49,8 +49,8 @@ public:
 	    glPoints=true;
 	    wires=true;
 	    boxes=true;
-	    iBoxes=-0.50;
-	    iBoxesW=1.01;
+	    iBoxes=-l;
+	    iBoxesW=2*l;
 	    float sz=g.voxelSizeZ();
 	    maxD=sz*2;
 	    minD=sz;
@@ -199,8 +199,6 @@ public:
 	}
 	void computeVertexNormals(TRIANGLE *t,colorVertex *cv){
 		float delta=g.voxelSizeZ()*0.25;
-		int i,j,k;
-		S x1,y1,z1;
 		S d,dx,dy,dz;
 		S x,y,z;
 		XYZ n;
@@ -235,54 +233,63 @@ public:
 	    TsdfVoxel *vxlPtr,empty;
 	    for(Idx idx:g.getVoxelsIdx()){
 	       	g.getIJKfromIdx(idx,i,j,k);
+	       	//i+1, j  , k
             grid.p[1].x = g.i2X(i+1);
             grid.p[1].y = g.j2Y(j);
             grid.p[1].z = g.k2Z(k);
             vxlPtr=g.getVoxelPtr(i+1,j,k);
   			if(vxlPtr==NULL) continue;
    			grid.val[1] =  vxlPtr->d;
+	       	//i+1, j+1, k
             grid.p[2].x = g.i2X(i+1);
             grid.p[2].y = g.j2Y(j+1);
             grid.p[2].z = g.k2Z(k);
             vxlPtr=g.getVoxelPtr(i+1,j+1,k);
   			if(vxlPtr==NULL) continue;
    			grid.val[2] =  vxlPtr->d;
+	       	//i  , j+1  , k
             grid.p[3].x = g.i2X(i);
             grid.p[3].y = g.j2Y(j+1);
             grid.p[3].z = g.k2Z(k);
             vxlPtr=g.getVoxelPtr(i,j+1,k);
   			if(vxlPtr==NULL) continue;
    			grid.val[3] =  vxlPtr->d;
+	       	//i  , j  , k+1
             grid.p[4].x = g.i2X(i);
             grid.p[4].y = g.j2Y(j);
             grid.p[4].z = g.k2Z(k+1);
             vxlPtr=g.getVoxelPtr(i,j,k+1);
   			if(vxlPtr==NULL) continue;
    			grid.val[4] =  vxlPtr->d;
+	       	//i+1, j  , k+1
             grid.p[5].x = g.i2X(i+1);
             grid.p[5].y = g.j2Y(j);
             grid.p[5].z = g.k2Z(k+1);
             vxlPtr=g.getVoxelPtr(i+1,j,k+1);
   			if(vxlPtr==NULL) continue;
    			grid.val[5] =  vxlPtr->d;
+	       	//i+1, j+1, k+1
             grid.p[6].x = g.i2X(i+1);
             grid.p[6].y = g.j2Y(j+1);
             grid.p[6].z = g.k2Z(k+1);
             vxlPtr=g.getVoxelPtr(i+1,j+1,k+1);
   			if(vxlPtr==NULL) continue;
    			grid.val[6] =  vxlPtr->d;
+	       	//i  , j+1, k+1
             grid.p[7].x = g.i2X(i);
             grid.p[7].y = g.j2Y(j+1);
             grid.p[7].z = g.k2Z(k+1);
             vxlPtr=g.getVoxelPtr(i,j+1,k+1);
   			if(vxlPtr==NULL) continue;
    			grid.val[7] =  vxlPtr->d;
+	       	//i  , j  , k
    			grid.p[0].x = g.i2X(i);
    			grid.p[0].y = g.j2Y(j);
    			grid.p[0].z = g.k2Z(k);
    			vxlPtr=g.getVoxelPtr(i,j,k);
    			if(vxlPtr==NULL) continue;
    			grid.val[0] = vxlPtr->d;
+   			//Martching cubes
    			int	n = PolygoniseCube(grid,0.0,triangles);
 			colorVertex color;
    			for (int l=0;l<n;l++){
@@ -309,25 +316,19 @@ public:
 		float &R=vxlPtr->r;
 		float &G=vxlPtr->g;
 		float &B=vxlPtr->b;
-		float &WR=vxlPtr->wr;
-		float &WG=vxlPtr->wg;
-		float &WB=vxlPtr->wb;
+		float &WC=vxlPtr->wc;
 		float &d=vxl.d;
 		float &w=vxl.wd;
 		float &r=vxl.r;
 		float &g=vxl.g;
 		float &b=vxl.b;
-		float &wr=vxl.wr;
-		float &wg=vxl.wg;
-		float &wb=vxl.wb;
+		float &wc=vxl.wc;
 		D=(W*D+w*d)/(W+w);
 		W+=w;
-		R=(WR*R+wr*r)/(WR+wr);
-		G=(WR*G+wg*g)/(WG+wg);
-		B=(WB*B+wb*b)/(WB+wb);
-		WR+=wr;
-		WG+=wg;
-		WB+=wb;
+		R=(WC*R+wc*r)/(WC+wc);
+		G=(WC*G+wc*g)/(WC+wc);
+		B=(WC*B+wc*b)/(WC+wc);
+		WC+=wc;
 	}
     inline void updatePixel(DepthImage &di1,int u,int v){
 		Point3f p3D, p3Dg;
@@ -365,9 +366,7 @@ public:
 			vxl.d=pd;
 			float w=err(p3D.z);
 			vxl.wd=w;///tau2/(vxl.z*vxl.z);
-			vxl.wr=w;///tau2/(vxl.z*vxl.z);
-			vxl.wg=w;///tau2/(vxl.z*vxl.z);
-			vxl.wb=w;///tau2/(vxl.z*vxl.z);
+			vxl.wc=w;///tau2/(vxl.z*vxl.z);
 			vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
 			if(vxlPtr==NULL){
 				g.setVoxel(p3Dg.x,p3Dg.y,p3Dg.z,vxl);
@@ -386,6 +385,109 @@ public:
 	    		if(di1.isGoodDepthPixel(u,v)){
 	    			updatePixel(di1,u,v);
 	    		}
+	    	}
+	    }
+	}
+	//19/3/2017 project all voxel to local screen and update that voxels
+	void updateGrid2(DepthImage &di){
+	    Point3f p3DG,p3DL;
+	    Point2f p2DL;
+	    //We need a image of voxel vectors
+	    Mat_<vector<TsdfVoxel*>*> imgVxl(di.rows(),di.cols());
+	    //allocate voxel vectors
+	    for(int u=0;u<imgVxl.cols;u++){
+	    	for(int v=0;v<imgVxl.rows;v++){
+	    		imgVxl.at<vector<TsdfVoxel*>*>(v,u)=new vector<TsdfVoxel*>();
+	    	}
+	    }
+	    //project all voxels to imgVxl
+	    for(Idx idx:g.getVoxelsIdx()){
+	       	g.getXYZfromIdx(idx,p3DG.x,p3DG.y,p3DG.z);
+	       	p3DL=di.toLocal(p3DG);
+	       	p2DL=di.project(p3DL);
+	       	//is in the frustum -> culling
+	       	if(di.is2DPointInImage(p2DL)){
+	       		int u=p2DL.x;
+	       		int v=p2DL.y;
+	       		//do we have depth information?
+	       		if(di.isGoodDepthPixel(u,v)){
+		    	    TsdfVoxel *vxlPtr;
+		       		vxlPtr=g.getVoxelPtr(idx);
+		       		if(vxlPtr==NULL){
+		       			cout<<"not should happend"<<endl;
+		       		}
+		       		else{
+			       		//set local 3d location
+			       		vxlPtr->setXYZ(p3DL.x,p3DL.y,p3DL.z);
+			       		vector<TsdfVoxel*>* vv;
+			       		vv=imgVxl.at<vector<TsdfVoxel*>*>(v,u);
+			       		//cout << "v="<< v << "u="<< u << "vv="<< vv << endl;
+			       		vv->push_back(vxlPtr);
+		       		}
+	       		}
+	       	}
+	    }
+	    //for each pixel on depth image and imgVxl
+	    int tep=0;
+	    int tup=0;
+	    int tuv=0;
+		for(int u=0;u<di.cols();u++){
+	    	for(int v=0;v<di.rows();v++){
+	    		if(di.isGoodDepthPixel(u,v)){
+    				float depth=di.getDepth(u,v);
+    				if(depth>1.5) continue;
+    				Vec3b c=di.getColor(u,v);
+	    			TsdfVoxel vxl;
+	    			vxl.r=c[2];
+	    			vxl.g=c[1];
+	    			vxl.b=c[0];
+	    			vector<TsdfVoxel*>* vxlList=imgVxl.at<vector<TsdfVoxel*>*>(v,u);
+	    			//there is not voxels on this pixel
+	    			//because the voxel list is empty
+	    			//set the new voxel
+	    			if(vxlList->empty()){
+	    				float x,y,z;
+	    				p3DG=di.getGlobalPoint3D(u,v);
+	    				g.XYZ2center(p3DG.x,p3DG.y,p3DG.z,x,y,z);
+	    				Point3f p3DGc(x,y,z);
+	    				p3DL=di.toLocal(p3DGc);
+	    				vxl.d=depth-p3DL.z;
+    	    			float w=err(p3DL.z);
+    	    			vxl.wd=w;///tau2/(vxl.z*vxl.z);
+    	    			vxl.wc=w;///tau2/(vxl.z*vxl.z);
+    		    	    TsdfVoxel *vxlPtr;
+    		       		vxlPtr=g.getVoxelPtr(p3DG.x,p3DG.y,p3DG.z);
+    		       		if(vxlPtr==NULL){
+    	    				tep++;
+        					g.setVoxel(p3DG.x,p3DG.y,p3DG.z,vxl);
+    		       		}
+    		       		//else{
+    		       		//	tuv++;
+    		       		//	updateVoxel(vxlPtr,vxl);
+    		       		//}
+	    			}
+	    			else{
+	    				tup++;
+	    				//for each voxel in the list
+	    				for(TsdfVoxel *vxlPtr:*vxlList){
+	    					//get projective distance
+	    					vxl.d=depth-vxlPtr->z;
+	    	    			float w=err(vxlPtr->z);
+	    	    			vxl.wd=w;///tau2/(vxl.z*vxl.z);
+	    	    			vxl.wc=w;///tau2/(vxl.z*vxl.z);
+	    	    			updateVoxel(vxlPtr,vxl);
+	    				}
+	    			}
+	    		}
+	    	}
+	    }
+		cout << "tep="<< tep <<endl;
+		cout << "tuv="<< tuv <<endl;
+		cout << "tup="<< tup <<endl;
+		//release voxel vectors
+	    for(int u=0;u<imgVxl.cols;u++){
+	    	for(int v=0;v<imgVxl.rows;v++){
+	    		delete imgVxl.at<vector<TsdfVoxel*>*>(v,u);
 	    	}
 	    }
 	}
