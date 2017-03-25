@@ -414,7 +414,7 @@ public:
 		    	    TsdfVoxel *vxlPtr;
 		       		vxlPtr=g.getVoxelPtr(idx);
 		       		if(vxlPtr==NULL){
-		       			cout<<"not should happend"<<endl;
+		       			cout<<"not should happen"<<endl;
 		       		}
 		       		else{
 			       		//set local 3d location
@@ -435,7 +435,7 @@ public:
 	    	for(int v=0;v<di.rows();v++){
 	    		if(di.isGoodDepthPixel(u,v)){
     				float depth=di.getDepth(u,v);
-    				if(depth>1.5) continue;
+    				//if(depth>1.5) continue;
     				Vec3b c=di.getColor(u,v);
 	    			TsdfVoxel vxl;
 	    			vxl.r=c[2];
@@ -461,10 +461,10 @@ public:
     	    				tep++;
         					g.setVoxel(p3DG.x,p3DG.y,p3DG.z,vxl);
     		       		}
-    		       		//else{
-    		       		//	tuv++;
-    		       		//	updateVoxel(vxlPtr,vxl);
-    		       		//}
+    		       		else{
+    		       			tuv++;
+    		       			updateVoxel(vxlPtr,vxl);
+    		       		}
 	    			}
 	    			else{
 	    				tup++;
@@ -472,7 +472,7 @@ public:
 	    				for(TsdfVoxel *vxlPtr:*vxlList){
 	    					//get projective distance
 	    					vxl.d=depth-vxlPtr->z;
-	    	    			float w=err(vxlPtr->z);
+	    	    			float w=1;//err(vxlPtr->z);
 	    	    			vxl.wd=w;///tau2/(vxl.z*vxl.z);
 	    	    			vxl.wc=w;///tau2/(vxl.z*vxl.z);
 	    	    			updateVoxel(vxlPtr,vxl);
