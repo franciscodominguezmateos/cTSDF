@@ -210,9 +210,9 @@ public:
 			dx=getTsdfTriLineal(x+delta,y ,z );
 			dy=getTsdfTriLineal(x ,y+delta,z );
 			dz=getTsdfTriLineal(x ,y ,z+delta);
-			n.x=dx-d;
-			n.y=dy-d;
-			n.z=dz-d;
+			n.x=d-dx;
+			n.y=d-dy;
+			n.z=d-dz;
 			double m=sqrt(n.x*n.x+n.y*n.y+n.z*n.z);
 			n.x/=m;
 			n.y/=m;
@@ -331,33 +331,30 @@ public:
 		WC+=wc;
 	}
     inline void updateSinglePixel(DepthImage &di1,int u,int v){
-		Point3f p3D, p3Dg;
 		TsdfVoxel vxl;
 		TsdfVoxel *vxlPtr;
-		Point3f rp3D=di1.getPoint3D(u,v);
+		Point3f p3Dl=di1.getPoint3D(u,v);
+		Point3f p3Dg=di1.toGlobal(p3Dl);
+		Point3f p3Dgc;
+		g.XYZ2center(p3Dg.x,p3Dg.y,p3Dg.z,p3Dgc.x,p3Dgc.y,p3Dgc.z);
 		//if(rp3D.z>1.5) return;
 		Vec3b c=di1.getColor(u,v);
-		float d=rp3D.z;//di1.getDepth(u,v);
-		Point3f rp3Dg=di1.toGlobal(rp3D);
-		if(g.isOut(rp3Dg.x,rp3Dg.y,rp3Dg.z)) return;
-		vxlPtr=g.getVoxelPtr(rp3Dg.x,rp3Dg.y,rp3Dg.z);
+		float d=di1.projectiveDistanceGlobal(p3Dgc);
+		if(g.isOut(p3Dgc.x,p3Dgc.y,p3Dgc.z)) return;
+		vxlPtr=g.getVoxelPtr(p3Dgc.x,p3Dgc.y,p3Dgc.z);
 		if(vxlPtr==NULL){
 			//get the center of the voxel rp3Dg
-			Point3f p3Dgc;
-			g.XYZ2center(rp3Dg.x,rp3Dg.y,rp3Dg.z,p3Dgc.x,p3Dgc.y,p3Dgc.z);
-			Point3f dif=rp3Dg-p3Dgc;
-			float pd=sqrt(dif.dot(dif));
-			vxl.x=rp3Dg.x;
-			vxl.y=rp3Dg.y;
-			vxl.z=rp3Dg.z;
+			vxl.x=p3Dgc.x;
+			vxl.y=p3Dgc.y;
+			vxl.z=p3Dgc.z;
 			vxl.r=c[2];
 			vxl.g=c[1];
 			vxl.b=c[0];
-			vxl.d=pd;
-			float w=1.0/err(p3D.z);
+			vxl.d=d;
+			float w=1.0;
 			vxl.wd=w;///tau2/(vxl.z*vxl.z);
 			vxl.wc=w;///tau2/(vxl.z*vxl.z);
-			g.setVoxel(rp3Dg.x,rp3Dg.y,rp3Dg.z,vxl);
+			g.setVoxel(p3Dgc.x,p3Dgc.y,p3Dgc.z,vxl);
 		}
 		else{
 			cout << "It should not be a not null voxel"<<endl;
@@ -376,7 +373,7 @@ public:
 		Point3f rp3Dg=di1.toGlobal(rp3D);
 		Point3f p3Dgc;
 		if(g.isOut(rp3D.x,rp3D.y,rp3D.z)) return;
-		for(float dt=-maxD;dt<=minD;dt+=sz/2){
+		for(float dt=-maxD;dt<=minD;dt+=sz){
 			//cout << "dt="<< dt <<endl;
 			p3D=di1.getPoint3Ddeep(u,v,d+dt);
 			p3Dg=di1.toGlobal(p3D);
@@ -399,7 +396,7 @@ public:
 			vxl.g=c[1];
 			vxl.b=c[0];
 			vxl.d=pd;
-			float w=1.0/err(p3D.z);
+			float w=1.0;//err(p3D.z);
 			vxl.wd=w;///tau2/(vxl.z*vxl.z);
 			vxl.wc=w;///tau2/(vxl.z*vxl.z);
 			vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
@@ -407,7 +404,7 @@ public:
 				g.setVoxel(p3Dg.x,p3Dg.y,p3Dg.z,vxl);
 			}
 			else{
-				updateVoxel(vxlPtr,vxl);
+				//updateVoxel(vxlPtr,vxl);
 			}
 		}
     }
@@ -462,6 +459,7 @@ public:
 	       	}
 	    }
 	    //for each pixel on depth image and imgVxl
+	    float sz=g.voxelSizeZ();
 	    int tep=0;
 	    int tup=0;
 	    int tuv=0;
@@ -469,7 +467,7 @@ public:
 	    	for(int v=0;v<di.rows();v++){
 	    		if(di.isGoodDepthPixel(u,v)){
     				float depth=di.getDepth(u,v);
-    				if(depth>1.5) continue;
+    				//if(depth>1.5) continue;
     				Vec3b c=di.getColor(u,v);
 	    			TsdfVoxel vxl;
 	    			vxl.r=c[2];
@@ -491,8 +489,8 @@ public:
 	    					Point3f p3Dg(vxlPtr->x,vxlPtr->y,vxlPtr->z);
 	    					vxl.d=di.projectiveDistanceGlobal(p3Dg);
 	    					float w=1.0;
-	    					//if(abs(vxl.d)>0.02)
-	    					//	w=0;
+	    					if(abs(vxl.d)>sz*4)
+	    						continue;//w=0;
 	    	    			vxl.wd=w;///tau2/(vxl.z*vxl.z);
 	    	    			vxl.wc=w;///tau2/(vxl.z*vxl.z);
 	    	    			updateVoxel(vxlPtr,vxl);
@@ -590,7 +588,7 @@ public:
     		       			updatePixel(di,u,v);
     		       		}*/
 	    				tep++;
-	    				updateSinglePixel(di,u,v);
+	    				updatePixel(di,u,v);
 	    			}
 	    			else{
 	    				tup++;
@@ -729,8 +727,8 @@ public:
 		        	 glColor3f(1,0,0);
 	      	     }
 	             glTranslatef(x,y,z);
-	             //glutWireCube(s);
-	             glutSolidCube(s);
+	             glutWireCube(s);
+	             //glutSolidCube(s);
 	             glPopMatrix();
 	          }
 	      }

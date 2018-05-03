@@ -230,7 +230,7 @@ int main(int argc, char** argv)
 	imshow("gX",gx);
 	*/
 
-    for(int i=0;i<200;i+=1){
+    for(int i=0;i<5;i+=1){
     	cout<<"i="<<i<<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();
