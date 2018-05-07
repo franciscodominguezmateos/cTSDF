@@ -14,6 +14,7 @@ typedef float S;
 GLint ancho=400;
 GLint alto=400;
 int hazPerspectiva = 1;
+GLfloat tx=0.8,ty=1.4,tz=0.8;
 GLfloat angle = 0.0;
 GLfloat yaw = 0.0;
 GLfloat roll = 0.0;
@@ -28,6 +29,7 @@ DepthImage di1,di2;
 bool wires=true;
 bool boxes=false;
 bool friccion=true;
+bool digl=false;
 int i=0;
 string basepath;
 
@@ -42,20 +44,35 @@ void displayMe(void)
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 //    gluLookAt (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    GLfloat lightpos[] = {3.0, 3.0, 3.0, 0.0};
+    GLfloat lightpos[] = {30.0, 30.0, 30.0, 0.0};
     glScalef(zoom,zoom,zoom);
     glRotatef(-90,1,0,0);//put Z up
-    //glTranslatef(0,0,-3.5);
+    glTranslatef(0,0,0);
     glTranslatef(0.0f, -t, 0);
     glRotatef(rotangles[0], 1,0,0);
     glRotatef(rotangles[1], 0,0,1);
+    //Axes
+    int l=10;
+    glBegin(GL_LINES);
+     glColor3f(1,0,0);
+     glVertex3f(0,0,0);
+     glVertex3f(l,0,0);
+     glColor3f(0,1,0);
+     glVertex3f(0,0,0);
+     glVertex3f(0,l,0);
+     glColor3f(0,0,1);
+     glVertex3f(0,0,0);
+     glVertex3f(0,0,l);
+    glEnd();
+    glPopMatrix();
+    glTranslatef(-tx,-ty,-tz);
     glRotatef(yaw  ,0.0,1.0,0.0);
     glRotatef(pitch,1.0,0.0,0.0);
     glRotatef(roll ,0.0,0.0,1.0);
-    //glTranslatef(0,-2,0);
     glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
     glPushMatrix();
     tog.glDrawMesh();
+    if(digl) di1.glRender();
     glPopMatrix();
     glutSwapBuffers();
     angle++;
@@ -131,30 +148,37 @@ void keyPressed (unsigned char key, int x, int y) {
       break;
     case 'p':
     case 'P':
-      yaw++;
+      //yaw++;
+      tx+=0.1;
       break;
 
     case 'o':
     case 'O':
-      yaw--;
+      //yaw--;
+    	tx-=0.1;
       break;
     case 'q':
     case 'Q':
-      pitch++;
+      //pitch++;
+    	tz+=0.1;
       break;
 
     case 'a':
     case 'A':
-      pitch--;
+      //pitch--;
+    	tz-=0.1;
       break;
     case 'w':
     case 'W':
-      roll++;
+      //roll++;
+      ty+=0.1;
       break;
 
     case 's':
     case 'S':
-      roll--;
+      //roll--;
+      ty-=0.1;
+      cout<<"tx="<<tx<<"ty="<<ty<<"tz="<<tz<<endl;
       break;
     case 'v':
     case 'V':
@@ -184,6 +208,10 @@ void keyPressed (unsigned char key, int x, int y) {
     case 'C':
       tog.boxes=!tog.boxes;
       break;
+    case 'm':
+    case 'M':
+    	digl=!digl;
+      break;
     case 'i':
     case 'I':
     	cout<<"i="<<i<<endl;
@@ -193,6 +221,7 @@ void keyPressed (unsigned char key, int x, int y) {
     	tog.updateGrid3(di2);
     	//imshow("di1",di1.getImg());
     	imshow("di2",di2.getImg());
+    	imshow("nor",di2.getNormals()*255);
     	//imshow("ddw",di2.getDepth()/2.5);
     	//imshow("dd1",di1.getDepth()/2.5);
         cout <<"voxels="<< g.getVoxelsIdx().size() <<endl;
@@ -230,7 +259,7 @@ int main(int argc, char** argv)
 	imshow("gX",gx);
 	*/
 
-    for(int i=0;i<5;i+=1){
+    for(i=0;i<1;i+=1){
     	cout<<"i="<<i<<endl;
     	di1=DepthImage(basepath,i);
         di1.bilateralDepthFilter();

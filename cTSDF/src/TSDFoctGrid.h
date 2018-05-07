@@ -395,16 +395,27 @@ public:
 			vxl.r=c[2];
 			vxl.g=c[1];
 			vxl.b=c[0];
-			vxl.d=pd;
-			float w=1.0;//err(p3D.z);
+			//angle from normal to vector point
+			float n=norm(p3D);
+			Point3f pn3Dl(p3D.x/n,p3D.y/n,p3D.z/n);
+			Point3f sn(di1.getNormal(u,v));
+			//if not valid normal
+			if(sn.x==0 && sn.y==0 && sn.z==0)
+				continue;
+			float theta=pn3Dl.dot(sn);
+			float w=theta;//err(p3D.z*150);
+			vxl.d=pd*w;
+			//cout << "w="<< w <<"z="<<p3D.z <<endl;
 			vxl.wd=w;///tau2/(vxl.z*vxl.z);
 			vxl.wc=w;///tau2/(vxl.z*vxl.z);
-			vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
-			if(vxlPtr==NULL){
-				g.setVoxel(p3Dg.x,p3Dg.y,p3Dg.z,vxl);
-			}
-			else{
-				//updateVoxel(vxlPtr,vxl);
+			if(p3D.z>0.25 and p3D.z<5.5 and w>0.9){
+				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
+				if(vxlPtr==NULL){
+						g.setVoxel(p3Dg.x,p3Dg.y,p3Dg.z,vxl);
+				}
+				else{
+					updateVoxel(vxlPtr,vxl);
+				}
 			}
 		}
     }
@@ -438,6 +449,8 @@ public:
 	       	p3DL=di.toLocal(p3DG);
 	       	p2DL=di.project(p3DL);
 	       	//is in the frustum -> culling
+	       	if(p3DL.z<0.25 || p3DL.z>1.5)
+	       		continue;
 	       	if(di.is2DPointInImage(p2DL)){
 	       		int u=p2DL.x;
 	       		int v=p2DL.y;
@@ -452,8 +465,10 @@ public:
 			       		//set local 3d location NOOOP!!!!
 			       		//vxlPtr->setXYZ(p3DL.x,p3DL.y,p3DL.z);
 			       		vector<TsdfVoxel*>* vv=imgVxl.at<vector<TsdfVoxel*>*>(v,u);
-			       		//cout << "v="<< v << "u="<< u << "vv="<< vv << endl;
-			       		vv->push_back(vxlPtr);
+			       		if(vxlPtr->wd>0){
+				       		//cout << "v="<< v << "u="<< u << "vv="<< vxlPtr->wd << endl;
+			       			vv->push_back(vxlPtr);
+			       		}
 		       		}
 	       		}
 	       	}
@@ -469,6 +484,7 @@ public:
     				float depth=di.getDepth(u,v);
     				//if(depth>1.5) continue;
     				Vec3b c=di.getColor(u,v);
+    				Point3f p3Dl=di.getPoint3D(u,v);
 	    			TsdfVoxel vxl;
 	    			vxl.r=c[2];
 	    			vxl.g=c[1];
@@ -488,8 +504,16 @@ public:
 	    					//get projective distance
 	    					Point3f p3Dg(vxlPtr->x,vxlPtr->y,vxlPtr->z);
 	    					vxl.d=di.projectiveDistanceGlobal(p3Dg);
-	    					float w=1.0;
-	    					if(abs(vxl.d)>sz*4)
+	    					//angle from normal to vector point
+	    					float n=norm(p3Dl);
+	    					Point3f pn3Dl(p3Dl.x/n,p3Dl.y/n,p3Dl.z/n);
+	    					Point3f sn(di.getNormal(u,v));
+	    					//if not valid normal
+	    					if(sn.x==0 && sn.y==0 && sn.z==0)
+	    						continue;
+	    					float theta=pn3Dl.dot(sn);
+	    					float w=theta;//err(p3D.z*150);
+	    					if(abs(vxl.d)>sz*4 || w<0.8)
 	    						continue;//w=0;
 	    	    			vxl.wd=w;///tau2/(vxl.z*vxl.z);
 	    	    			vxl.wc=w;///tau2/(vxl.z*vxl.z);
@@ -505,6 +529,7 @@ public:
 		//release voxel vectors
 	    for(int u=0;u<imgVxl.cols;u++){
 	    	for(int v=0;v<imgVxl.rows;v++){
+	    		imgVxl.at<vector<TsdfVoxel*>*>(v,u)->clear();
 	    		delete imgVxl.at<vector<TsdfVoxel*>*>(v,u);
 	    	}
 	    }
@@ -623,9 +648,10 @@ public:
 				TsdfVoxel *vxlPtr=NULL;
 				float d=10e32;
 				float dt=0.5;
-				float idt=sz*4;
+				float idt=sz;
+				Point3f vn=di1.getPoint3Ddeep(u,v,0.5);
 				for(;dt<g.getSizeZ() && d>0.0;dt+=idt){
-					Point3f p3D=di1.getPoint3Ddeep(u,v,dt*g.voxelSizeZ());
+					Point3f p3D(vn.x*dt,vn.y*dt,vn.z*dt);
 					Point3f p3Dg=di1.toGlobal(p3D);
 					vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
 					if(vxlPtr!=NULL){
