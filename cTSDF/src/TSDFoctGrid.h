@@ -52,8 +52,8 @@ public:
 	    iBoxes=-l;
 	    iBoxesW=2*l;
 	    float sz=g.voxelSizeZ();
-	    maxD=sz;
-	    minD=sz;
+	    maxD=sz*20;
+	    minD=sz*2;
 	    cout <<"VoxelSize="<<sz<<endl;
 	}
 	~TSDFoctGrid(){}
@@ -308,7 +308,7 @@ public:
 		const float K=q*b*f;
 		float e=K/2.0*(1.0/(float)((int)(K/z-0.5))-1/(float)((int)(K/z+0.5)));
 		//cout <<e<<endl;
-		return e ;
+		return e*100 ;
 	}
 	inline void updateVoxel(TsdfVoxel *vxlPtr,TsdfVoxel &vxl){
 		float &D=vxlPtr->d;
@@ -325,10 +325,12 @@ public:
 		float &wc=vxl.wc;
 		D=(W*D+w*d)/(W+w);
 		W+=w;
+		if(W>10.0) W=10.0;
 		R=(WC*R+wc*r)/(WC+wc);
 		G=(WC*G+wc*g)/(WC+wc);
 		B=(WC*B+wc*b)/(WC+wc);
 		WC+=wc;
+		if(WC>10.0) WC=10.0;
 	}
     inline void updateSinglePixel(DepthImage &di1,int u,int v){
 		TsdfVoxel vxl;
@@ -400,17 +402,20 @@ public:
 			Point3f pn3Dl(p3D.x/n,p3D.y/n,p3D.z/n);
 			Point3f sn(di1.getNormal(u,v));
 			//if not valid normal
-			if(sn.x==0 && sn.y==0 && sn.z==0)
+			if(di1.isBadNormal(sn)){
+				//cout<<"bad normal"<<endl;
 				continue;
+			}
 			float theta=pn3Dl.dot(sn);
-			float w=theta;//err(p3D.z*150);
-			vxl.d=pd*w;
+			float w=sn.z/err(p3D.z);
+			vxl.d=pd;
 			//cout << "w="<< w <<"z="<<p3D.z <<endl;
 			vxl.wd=w;///tau2/(vxl.z*vxl.z);
 			vxl.wc=w;///tau2/(vxl.z*vxl.z);
 			if(p3D.z>0.25 and p3D.z<5.5 and w>0.9){
 				vxlPtr=g.getVoxelPtr(p3Dg.x,p3Dg.y,p3Dg.z);
 				if(vxlPtr==NULL){
+					    vxl.d*=w;
 						g.setVoxel(p3Dg.x,p3Dg.y,p3Dg.z,vxl);
 				}
 				else{
@@ -425,7 +430,7 @@ public:
 	    	//if(u%300==0) cout << u << endl;
 	    	for(int v=0;v<di1.rows();v++){
 	    		//units metres
-	    		if(di1.isGoodDepthPixel(u,v)){
+	    		if(di1.isGoodDepthPixel(u,v) && di1.isGoodNormal(u,v)){
 	    			updatePixel(di1,u,v);
 	    		}
 	    	}
@@ -480,7 +485,7 @@ public:
 	    int tuv=0;
 		for(int u=0;u<di.cols();u++){
 	    	for(int v=0;v<di.rows();v++){
-	    		if(di.isGoodDepthPixel(u,v)){
+	    		if(di.isGoodDepthPixel(u,v) && di.isGoodNormal(u,v)){
     				float depth=di.getDepth(u,v);
     				//if(depth>1.5) continue;
     				Vec3b c=di.getColor(u,v);
@@ -507,13 +512,10 @@ public:
 	    					//angle from normal to vector point
 	    					float n=norm(p3Dl);
 	    					Point3f pn3Dl(p3Dl.x/n,p3Dl.y/n,p3Dl.z/n);
-	    					Point3f sn(di.getNormal(u,v));
-	    					//if not valid normal
-	    					if(sn.x==0 && sn.y==0 && sn.z==0)
-	    						continue;
-	    					float theta=pn3Dl.dot(sn);
-	    					float w=theta;//err(p3D.z*150);
-	    					if(abs(vxl.d)>sz*4 || w<0.8)
+	    					Point3f vn=di.getNormal(u,v);
+	    					float theta=pn3Dl.dot(vn);
+	    					float w=vn.z/err(p3Dl.z);
+	    					if(vxl.d>maxD || vxl.d>minD || w<0.8)
 	    						continue;//w=0;
 	    	    			vxl.wd=w;///tau2/(vxl.z*vxl.z);
 	    	    			vxl.wc=w;///tau2/(vxl.z*vxl.z);
